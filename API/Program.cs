@@ -1,15 +1,20 @@
+﻿using AutoWashPro.DAL.Data;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var app = builder.Build();
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Configure the HTTP request pipeline.
+builder.Services.AddDbContext<AutoWashDbContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
+var app = builder.Build(); 
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -17,9 +22,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
