@@ -18,7 +18,7 @@ namespace AutoWashPro.API.Controllers
             _serviceService = serviceService;
         }
 
-        [AllowAnonymous] // Mở public để App chưa đăng nhập vẫn thấy dịch vụ
+        [AllowAnonymous] 
         [HttpGet]
         public async Task<IActionResult> GetActiveServices()
         {

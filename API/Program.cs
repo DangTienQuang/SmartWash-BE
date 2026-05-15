@@ -82,11 +82,11 @@ builder.Services.AddAuthentication(x =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITierService, TierService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IOperationService, OperationService>();
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IVehicleService, AutoWashPro.BLL.Services.VehicleService>();
 builder.Services.AddScoped<IVehicleTypeService, AutoWashPro.BLL.Services.VehicleTypeService>();
 builder.Services.AddScoped<IServiceService, AutoWashPro.BLL.Services.ServiceService>();
+builder.Services.AddScoped<IBookingService, AutoWashPro.BLL.Services.BookingService>();
 
 var app = builder.Build();
 app.UseMiddleware<AutoWashPro.API.Middlewares.ExceptionMiddleware>();

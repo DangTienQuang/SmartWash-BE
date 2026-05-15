@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -13,11 +9,18 @@ namespace AutoWashPro.DAL.Entities
         [Key]
         public int WalletId { get; set; }
 
-        [ForeignKey("User")]
+        [Required]
         public int UserId { get; set; }
+        [ForeignKey("UserId")]
         public User User { get; set; }
 
-        public decimal MainBalance { get; set; }
-        public int TotalLoyaltyPoints { get; set; }
+        [Required]
+        public decimal Balance { get; set; }
+
+        [Required]
+        [MaxLength(20)]
+        public string Status { get; set; } = "Active";
+
+        public ICollection<Transaction> Transactions { get; set; }
     }
 }

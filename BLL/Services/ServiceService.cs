@@ -23,7 +23,7 @@ namespace AutoWashPro.BLL.Services
             var services = await _context.Services
                 .Include(s => s.ServicePrices)
                     .ThenInclude(sp => sp.VehicleType)
-                .Where(s => s.IsActive) // Chỉ lấy Dịch vụ đang mở bán
+                .Where(s => s.IsActive) 
                 .ToListAsync();
 
             return services.Select(s => MapToDTO(s)).ToList();
@@ -52,7 +52,6 @@ namespace AutoWashPro.BLL.Services
 
         public async Task<ServiceDTO> CreateServiceAsync(CreateOrUpdateServiceDTO request)
         {
-            // Kiểm tra xem các VehicleTypeId gửi lên có tồn tại trong DB không
             var vehicleTypeIds = request.Prices.Select(p => p.VehicleTypeId).Distinct().ToList();
             var existingTypesCount = await _context.VehicleTypes.CountAsync(vt => vehicleTypeIds.Contains(vt.Id));
             if (existingTypesCount != vehicleTypeIds.Count) throw new Exception("Một hoặc nhiều loại xe không hợp lệ.");
@@ -91,7 +90,6 @@ namespace AutoWashPro.BLL.Services
             service.ServiceName = request.ServiceName;
             service.Description = request.Description;
 
-            // Xóa bảng giá cũ, cập nhật bảng giá mới
             _context.ServicePrices.RemoveRange(service.ServicePrices);
 
             service.ServicePrices = request.Prices.Select(p => new ServicePrice
@@ -109,14 +107,11 @@ namespace AutoWashPro.BLL.Services
         {
             var service = await _context.Services.FindAsync(id);
             if (service == null) throw new Exception("Không tìm thấy dịch vụ.");
-
-            // Soft-Delete: Đảo ngược trạng thái Active/Inactive thay vì xóa khỏi DB
             service.IsActive = !service.IsActive;
             await _context.SaveChangesAsync();
             return true;
         }
 
-        // Hàm hỗ trợ map dữ liệu
         private static ServiceDTO MapToDTO(Service service)
         {
             return new ServiceDTO

@@ -20,6 +20,7 @@ namespace AutoWashPro.DAL.Data
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<UserVoucher> UserVouchers { get; set; }
+        public DbSet<TimeSlot> TimeSlots { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

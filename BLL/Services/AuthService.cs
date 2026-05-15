@@ -29,35 +29,44 @@ namespace AutoWashPro.BLL.Services
             _context = context;
             _configuration = configuration;
         }
-
         public async Task<AuthResponseDTO> RegisterAsync(RegisterDTO request)
         {
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber);
-            if (existingUser != null) throw new Exception("Phone number already exists.");
+            if (existingUser != null) throw new Exception("Số điện thoại này đã được đăng ký.");
 
             using var transaction = await _context.Database.BeginTransactionAsync();
-
             try
             {
+                var defaultTier = await _context.Tiers.FirstOrDefaultAsync(t => t.MinAccumulatedPoints == 0);
+
+                if (defaultTier == null)
+                {
+                    defaultTier = new Tier
+                    {
+                        TierName = "Standard",
+                        PointMultiplier = 1.0,
+                        BookingWindowDays = 7,
+                        MinAccumulatedPoints = 0
+                    };
+                    _context.Tiers.Add(defaultTier);
+                    await _context.SaveChangesAsync();
+                }
+
                 var user = new User
                 {
                     PhoneNumber = request.PhoneNumber,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                    Role = "Customer",
-                    Status = "Active"
+                    Role = UserRoles.Customer,
+                    Status = UserStatuses.Active 
                 };
-
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
-
-                var standardTier = await _context.Tiers.FirstOrDefaultAsync(t => t.TierName == "Standard");
-                if (standardTier == null) throw new Exception("System error: Standard tier is missing in the database.");
 
                 var profile = new CustomerProfile
                 {
                     UserId = user.UserId,
                     FullName = request.FullName,
-                    TierId = standardTier.TierId,
+                    TierId = defaultTier.TierId,
                     ChurnScore = 0
                 };
                 _context.CustomerProfiles.Add(profile);
@@ -65,22 +74,15 @@ namespace AutoWashPro.BLL.Services
                 var wallet = new Wallet
                 {
                     UserId = user.UserId,
-                    MainBalance = 0,
-                    TotalLoyaltyPoints = 0
+                    Balance = 0,
+                    Status = "Active"
                 };
                 _context.Wallets.Add(wallet);
 
                 await _context.SaveChangesAsync();
-
                 await transaction.CommitAsync();
 
-                return new AuthResponseDTO
-                {
-                    UserId = user.UserId,
-                    PhoneNumber = user.PhoneNumber,
-                    FullName = profile.FullName,
-                    Role = user.Role
-                };
+                return await LoginAsync(new LoginDTO { PhoneNumber = request.PhoneNumber, Password = request.Password });
             }
             catch (Exception)
             {

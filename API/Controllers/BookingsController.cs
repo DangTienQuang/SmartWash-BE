@@ -13,25 +13,21 @@ namespace AutoWashPro.API.Controllers
     [Authorize]
     public class BookingsController : ControllerBase
     {
-        private readonly IOperationService _operationService;
+        private readonly IBookingService _bookingService;
 
-        public BookingsController(IOperationService operationService)
+        public BookingsController(IBookingService bookingService)
         {
-            _operationService = operationService;
+            _bookingService = bookingService;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDTO request)
+        [HttpGet("slots")]
+        public async Task<IActionResult> GetAvailableSlots([FromQuery] DateTime targetDate)
         {
             try
             {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (userIdClaim == null) return Unauthorized(new { statusCode = 401, message = "Unauthorized" });
-
-                int userId = int.Parse(userIdClaim);
-                var result = await _operationService.CreateBookingAsync(userId, request);
-
-                return Created("", new { statusCode = 201, message = "Success", data = result });
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+                var result = await _bookingService.GetAvailableSlotsAsync(userId, targetDate);
+                return Ok(new { statusCode = 200, message = "Success", data = result });
             }
             catch (Exception ex)
             {
@@ -39,18 +35,59 @@ namespace AutoWashPro.API.Controllers
             }
         }
 
-        [HttpGet("my-bookings")]
+        [HttpPost]
+        public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDTO request)
+        {
+            try
+            {
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+                var result = await _bookingService.CreateBookingAsync(userId, request);
+                return Created("", new { statusCode = 201, message = "Đặt lịch và thanh toán cọc thành công.", data = result });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpGet("me")]
         public async Task<IActionResult> GetMyBookings()
         {
             try
             {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (userIdClaim == null) return Unauthorized(new { statusCode = 401, message = "Unauthorized" });
-
-                int userId = int.Parse(userIdClaim);
-                var result = await _operationService.GetMyBookingsAsync(userId);
-
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+                var result = await _bookingService.GetMyBookingsAsync(userId);
                 return Ok(new { statusCode = 200, message = "Success", data = result });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetBookingById(int id)
+        {
+            try
+            {
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+                var result = await _bookingService.GetBookingByIdAsync(userId, id);
+                return Ok(new { statusCode = 200, message = "Success", data = result });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { statusCode = 400, message = ex.Message });
+            }
+        }
+
+        [HttpPut("{id}/cancel")]
+        public async Task<IActionResult> CancelBooking(int id)
+        {
+            try
+            {
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+                await _bookingService.CancelBookingAsync(userId, id);
+                return Ok(new { statusCode = 200, message = "Đã hủy lịch thành công." });
             }
             catch (Exception ex)
             {

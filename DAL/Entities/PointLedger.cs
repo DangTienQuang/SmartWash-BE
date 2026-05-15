@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -14,14 +9,20 @@ namespace AutoWashPro.DAL.Entities
         [Key]
         public int LedgerId { get; set; }
 
-        [ForeignKey("Wallet")]
-        public int WalletId { get; set; }
-        public Wallet Wallet { get; set; }
+        [Required]
+        public int UserId { get; set; }
+        [ForeignKey("UserId")]
+        public User User { get; set; }
 
-        public int PointsAdded { get; set; }
-        public int PointsRemaining { get; set; }
+        public int PointsAdded { get; set; } = 0;
+        public int PointsDeducted { get; set; } = 0;
 
-        public DateTime EarnedDate { get; set; }
-        public DateTime ExpirationDate { get; set; }
+        public string Reason { get; set; }
+
+        public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
+
+        public DateTime? ExpiryDate { get; set; }
+
+        public int? ReferenceBookingId { get; set; }
     }
 }
