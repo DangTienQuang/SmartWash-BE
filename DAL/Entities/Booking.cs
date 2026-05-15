@@ -9,10 +9,9 @@ namespace AutoWashPro.DAL.Entities
         [Key]
         public int BookingId { get; set; }
 
-        [Required]
-        public int UserId { get; set; }
-        [ForeignKey("UserId")]
-        public User User { get; set; }
+        [ForeignKey("User")]
+        public int? UserId { get; set; }
+        public User? User { get; set; }
 
         [Required]
         [MaxLength(20)]
@@ -29,7 +28,6 @@ namespace AutoWashPro.DAL.Entities
         [Required]
         [MaxLength(20)]
         public string Status { get; set; } = "Pending";
-
 
         [Required]
         public decimal OriginalPrice { get; set; }

@@ -121,25 +121,28 @@ namespace AutoWashPro.BLL.Services
 
             if (newStatus == "Completed" && booking.Status != "Completed")
             {
-                var userProfile = await _context.CustomerProfiles
-                    .Include(cp => cp.Tier)
-                    .FirstOrDefaultAsync(cp => cp.UserId == booking.UserId);
-
-                if (userProfile != null && userProfile.Tier != null && booking.FinalAmount > 0)
+                if (booking.UserId.HasValue)
                 {
-                    int pointsEarned = (int)((booking.FinalAmount / 1000) * (decimal)userProfile.Tier.PointMultiplier);
+                    var userProfile = await _context.CustomerProfiles
+                        .Include(cp => cp.Tier)
+                        .FirstOrDefaultAsync(cp => cp.UserId == booking.UserId.Value);
 
-                    if (pointsEarned > 0)
+                    if (userProfile != null && userProfile.Tier != null && booking.FinalAmount > 0)
                     {
-                        var pointLedger = new PointLedger
+                        int pointsEarned = (int)((booking.FinalAmount / 1000) * (decimal)userProfile.Tier.PointMultiplier);
+
+                        if (pointsEarned > 0)
                         {
-                            UserId = booking.UserId,
-                            PointsAdded = pointsEarned,
-                            Reason = $"Hoàn thành dịch vụ #{booking.BookingId}",
-                            ExpiryDate = DateTime.UtcNow.AddMonths(12),
-                            ReferenceBookingId = booking.BookingId
-                        };
-                        _context.PointLedgers.Add(pointLedger);
+                            var pointLedger = new PointLedger
+                            {
+                                UserId = booking.UserId.Value,
+                                PointsAdded = pointsEarned,
+                                Reason = $"Hoàn thành dịch vụ #{booking.BookingId}",
+                                ExpiryDate = DateTime.UtcNow.AddMonths(12),
+                                ReferenceBookingId = booking.BookingId
+                            };
+                            _context.PointLedgers.Add(pointLedger);
+                        }
                     }
                 }
             }

@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -28,5 +23,10 @@ namespace AutoWashPro.DAL.Entities
 
         public double ChurnScore { get; set; }
         public DateTime? LastVisitDate { get; set; }
+
+        [MaxLength(20)]
+        public string? ReferralCode { get; set; }
+
+        public int? ReferredById { get; set; }
     }
 }
