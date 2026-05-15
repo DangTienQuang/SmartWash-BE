@@ -1,36 +1,38 @@
-﻿# 1. Build
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+﻿# 1. Giai đoạn Build (Dùng Alpine để nhẹ và nhanh)
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 WORKDIR /app
 
+# Copy các file project để restore trước
 COPY *.sln .
 COPY API/*.csproj ./API/
 COPY BLL/*.csproj ./BLL/
 COPY DAL/*.csproj ./DAL/
 RUN dotnet restore
 
+# Copy toàn bộ code và build
 COPY . .
 WORKDIR /app/API
-RUN dotnet publish -c Release -o /out
+# Publish ra một thư mục riêng
+RUN dotnet publish -c Release -o /out /p:UseAppHost=false
 
-# 2. Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+# 2. Giai đoạn Runtime (Dùng Alpine - Siêu nhẹ cho RAM 512MB)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
 WORKDIR /app
 COPY --from=build /out ./
 
-# --- LIỀU THUỐC ĐẶC TRỊ LỖI 139 TRÊN RENDER ---
-# 1. Tắt Server Garbage Collection
+# --- CẤU HÌNH ĐẶC TRỊ RENDER FREE (BẮT BUỘC) ---
+# Tắt chế độ server GC để không ngốn RAM
 ENV DOTNET_gcServer=0
-
-# 2. TẮT Diagnostics (Thủ phạm chính gây xung đột và văng app)
+# Tắt hoàn toàn chẩn đoán (Tránh lỗi 139)
 ENV DOTNET_EnableDiagnostics=0
-ENV COMPlus_EnableDiagnostics=0
-
-# 3. Tắt đa ngôn ngữ (Tiết kiệm RAM tối đa, tránh lỗi thiếu thư viện Linux)
+# Tắt đa ngôn ngữ để app nhẹ nhất có thể
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 
-# 4. Port chuẩn cho Render
+# Port cho Render
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
-# ----------------------------------------------
+# -----------------------------------------------
 
+# LƯU Ý: Nếu file project của bạn không phải tên "API.csproj" 
+# thì hãy đổi tên "API.dll" ở dưới thành tên project của bạn nhé.
 ENTRYPOINT ["dotnet", "API.dll"]
