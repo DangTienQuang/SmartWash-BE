@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(AutoWashDbContext))]
-    [Migration("20260515080804_AddServicePricesTable")]
+    [Migration("20260515100326_AddServicePricesTable")]
     partial class AddServicePricesTable
     {
         /// <inheritdoc />
@@ -181,6 +181,9 @@ namespace DAL.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("BookingWindowDays")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinAccumulatedPoints")
                         .HasColumnType("int");
 
                     b.Property<double>("PointMultiplier")
@@ -411,7 +414,7 @@ namespace DAL.Migrations
             modelBuilder.Entity("AutoWashPro.DAL.Entities.CustomerProfile", b =>
                 {
                     b.HasOne("AutoWashPro.DAL.Entities.Tier", "Tier")
-                        .WithMany("Customers")
+                        .WithMany("CustomerProfiles")
                         .HasForeignKey("TierId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -530,7 +533,7 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("AutoWashPro.DAL.Entities.Tier", b =>
                 {
-                    b.Navigation("Customers");
+                    b.Navigation("CustomerProfiles");
                 });
 
             modelBuilder.Entity("AutoWashPro.DAL.Entities.User", b =>

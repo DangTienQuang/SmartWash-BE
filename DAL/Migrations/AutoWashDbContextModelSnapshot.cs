@@ -180,6 +180,9 @@ namespace DAL.Migrations
                     b.Property<int>("BookingWindowDays")
                         .HasColumnType("int");
 
+                    b.Property<int>("MinAccumulatedPoints")
+                        .HasColumnType("int");
+
                     b.Property<double>("PointMultiplier")
                         .HasColumnType("double");
 
@@ -408,7 +411,7 @@ namespace DAL.Migrations
             modelBuilder.Entity("AutoWashPro.DAL.Entities.CustomerProfile", b =>
                 {
                     b.HasOne("AutoWashPro.DAL.Entities.Tier", "Tier")
-                        .WithMany("Customers")
+                        .WithMany("CustomerProfiles")
                         .HasForeignKey("TierId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -527,7 +530,7 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("AutoWashPro.DAL.Entities.Tier", b =>
                 {
-                    b.Navigation("Customers");
+                    b.Navigation("CustomerProfiles");
                 });
 
             modelBuilder.Entity("AutoWashPro.DAL.Entities.User", b =>

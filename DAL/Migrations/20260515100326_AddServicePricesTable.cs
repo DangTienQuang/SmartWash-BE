@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DAL.Migrations
 {
     /// <inheritdoc />
-    public partial class Init11Tables : Migration
+    public partial class AddServicePricesTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -23,8 +23,9 @@ namespace DAL.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ServiceName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    BasePrice = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
-                    DurationMinutes = table.Column<int>(type: "int", nullable: false)
+                    Description = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -41,7 +42,8 @@ namespace DAL.Migrations
                     TierName = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     PointMultiplier = table.Column<double>(type: "double", nullable: false),
-                    BookingWindowDays = table.Column<int>(type: "int", nullable: false)
+                    BookingWindowDays = table.Column<int>(type: "int", nullable: false),
+                    MinAccumulatedPoints = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -62,11 +64,31 @@ namespace DAL.Migrations
                     Role = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Status = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    RefreshToken = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    RefreshTokenExpiryTime = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.UserId);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "VehicleTypes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Name = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Description = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_VehicleTypes", x => x.Id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -97,6 +119,10 @@ namespace DAL.Migrations
                     UserId = table.Column<int>(type: "int", nullable: false),
                     FullName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
+                    Email = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AvatarUrl = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     TierId = table.Column<int>(type: "int", nullable: false),
                     ChurnScore = table.Column<double>(type: "double", nullable: false),
                     LastVisitDate = table.Column<DateTime>(type: "datetime(6)", nullable: true)
@@ -120,27 +146,6 @@ namespace DAL.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "Vehicles",
-                columns: table => new
-                {
-                    LicensePlate = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    UserId = table.Column<int>(type: "int", nullable: true),
-                    VehicleType = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Vehicles", x => x.LicensePlate);
-                    table.ForeignKey(
-                        name: "FK_Vehicles_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "UserId");
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
                 name: "Wallets",
                 columns: table => new
                 {
@@ -158,6 +163,61 @@ namespace DAL.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "UserId",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "ServicePrices",
+                columns: table => new
+                {
+                    ServicePriceId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    ServiceId = table.Column<int>(type: "int", nullable: false),
+                    VehicleTypeId = table.Column<int>(type: "int", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    DurationMinutes = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ServicePrices", x => x.ServicePriceId);
+                    table.ForeignKey(
+                        name: "FK_ServicePrices_Services_ServiceId",
+                        column: x => x.ServiceId,
+                        principalTable: "Services",
+                        principalColumn: "ServiceId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ServicePrices_VehicleTypes_VehicleTypeId",
+                        column: x => x.VehicleTypeId,
+                        principalTable: "VehicleTypes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "Vehicles",
+                columns: table => new
+                {
+                    LicensePlate = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    UserId = table.Column<int>(type: "int", nullable: true),
+                    VehicleTypeId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Vehicles", x => x.LicensePlate);
+                    table.ForeignKey(
+                        name: "FK_Vehicles_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "UserId");
+                    table.ForeignKey(
+                        name: "FK_Vehicles_VehicleTypes_VehicleTypeId",
+                        column: x => x.VehicleTypeId,
+                        principalTable: "VehicleTypes",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
@@ -187,6 +247,30 @@ namespace DAL.Migrations
                         column: x => x.VoucherId,
                         principalTable: "Vouchers",
                         principalColumn: "VoucherId",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "PointLedgers",
+                columns: table => new
+                {
+                    LedgerId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    WalletId = table.Column<int>(type: "int", nullable: false),
+                    PointsAdded = table.Column<int>(type: "int", nullable: false),
+                    PointsRemaining = table.Column<int>(type: "int", nullable: false),
+                    EarnedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    ExpirationDate = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PointLedgers", x => x.LedgerId);
+                    table.ForeignKey(
+                        name: "FK_PointLedgers_Wallets_WalletId",
+                        column: x => x.WalletId,
+                        principalTable: "Wallets",
+                        principalColumn: "WalletId",
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
@@ -225,30 +309,6 @@ namespace DAL.Migrations
                         column: x => x.LicensePlate,
                         principalTable: "Vehicles",
                         principalColumn: "LicensePlate",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "PointLedgers",
-                columns: table => new
-                {
-                    LedgerId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    WalletId = table.Column<int>(type: "int", nullable: false),
-                    PointsAdded = table.Column<int>(type: "int", nullable: false),
-                    PointsRemaining = table.Column<int>(type: "int", nullable: false),
-                    EarnedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    ExpirationDate = table.Column<DateTime>(type: "datetime(6)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PointLedgers", x => x.LedgerId);
-                    table.ForeignKey(
-                        name: "FK_PointLedgers_Wallets_WalletId",
-                        column: x => x.WalletId,
-                        principalTable: "Wallets",
-                        principalColumn: "WalletId",
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
@@ -315,6 +375,16 @@ namespace DAL.Migrations
                 column: "WalletId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ServicePrices_ServiceId",
+                table: "ServicePrices",
+                column: "ServiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ServicePrices_VehicleTypeId",
+                table: "ServicePrices",
+                column: "VehicleTypeId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Transactions_BookingId",
                 table: "Transactions",
                 column: "BookingId");
@@ -346,6 +416,11 @@ namespace DAL.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Vehicles_VehicleTypeId",
+                table: "Vehicles",
+                column: "VehicleTypeId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Wallets_UserId",
                 table: "Wallets",
                 column: "UserId");
@@ -359,6 +434,9 @@ namespace DAL.Migrations
 
             migrationBuilder.DropTable(
                 name: "PointLedgers");
+
+            migrationBuilder.DropTable(
+                name: "ServicePrices");
 
             migrationBuilder.DropTable(
                 name: "Transactions");
@@ -386,6 +464,9 @@ namespace DAL.Migrations
 
             migrationBuilder.DropTable(
                 name: "Users");
+
+            migrationBuilder.DropTable(
+                name: "VehicleTypes");
         }
     }
 }
