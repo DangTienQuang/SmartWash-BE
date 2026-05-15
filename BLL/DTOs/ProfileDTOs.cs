@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace AutoWashPro.BLL.DTOs
@@ -15,7 +11,7 @@ namespace AutoWashPro.BLL.DTOs
         public string PhoneNumber { get; set; }
         public string TierName { get; set; }
         public double ChurnScore { get; set; }
-        public System.Collections.Generic.List<VehicleDTO> Vehicles { get; set; }
+        public List<VehicleDTO> Vehicles { get; set; }
     }
 
     public class VehicleDTO
@@ -30,7 +26,58 @@ namespace AutoWashPro.BLL.DTOs
         [RegularExpression(@"^[0-9]{2}[A-Z0-9]-[0-9]{3,5}(\.[0-9]{2})?$", ErrorMessage = "Biển số xe không hợp lệ (VD: 51H-123.45).")]
         public string LicensePlate { get; set; }
 
-        [Required(ErrorMessage = "Loại xe không được để trống.")]
+        [Required(ErrorMessage = "Vui lòng chọn loại xe.")]
+        public int VehicleTypeId { get; set; }
+    }
+
+    public class UpdateVehicleDTO
+    {
+        [Required(ErrorMessage = "Vui lòng chọn loại xe.")]
+        public int VehicleTypeId { get; set; }
+    }
+
+    public class UpdateUserProfileDTO
+    {
+        public string? FullName { get; set; }
+
+        [RegularExpression(@"^(0[3|5|7|8|9])+([0-9]{8})$", ErrorMessage = "Số điện thoại không hợp lệ.")]
+        public string? PhoneNumber { get; set; }
+    }
+
+    public class UpdateUserStatusDTO
+    {
+        [Required(ErrorMessage = "Trạng thái không được để trống.")]
+        [RegularExpression("^(Active|Blocked)$", ErrorMessage = "Trạng thái chỉ được phép là 'Active' hoặc 'Blocked'.")]
+        public string Status { get; set; }
+    }
+
+    public class PagedResultDTO<T>
+    {
+        public List<T> Items { get; set; }
+        public int TotalItems { get; set; }
+        public int TotalPages { get; set; }
+        public int CurrentPage { get; set; }
+    }
+
+    public class UserAdminSummaryDTO
+    {
+        public int UserId { get; set; }
+        public string FullName { get; set; }
+        public string PhoneNumber { get; set; }
+        public string TierName { get; set; }
+        public string Status { get; set; }
+        public DateTime? LastVisitDate { get; set; }
+    }
+
+    public class VehicleRecognitionDTO
+    {
+        public string LicensePlate { get; set; }
         public string VehicleType { get; set; }
+        public string OwnerName { get; set; }
+        public string OwnerPhone { get; set; }
+        public string TierName { get; set; }
+        public bool HasActiveBooking { get; set; }
+        public int? ActiveBookingId { get; set; }
+        public DateTime? ScheduledTime { get; set; }
     }
 }

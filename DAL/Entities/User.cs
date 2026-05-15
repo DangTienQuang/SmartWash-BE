@@ -27,7 +27,8 @@ namespace AutoWashPro.DAL.Entities
         [Required]
         [MaxLength(20)]
         public string Status { get; set; }
-
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
         public CustomerProfile CustomerProfile { get; set; }
         public ICollection<Vehicle> Vehicles { get; set; }
     }

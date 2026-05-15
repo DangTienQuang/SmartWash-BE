@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using AutoWashPro.BLL.DTOs;
 using AutoWashPro.DAL.Data;
 using AutoWashPro.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
+using AutoWashPro.BLL.Constants;
 
 namespace AutoWashPro.BLL.Services
 {
@@ -28,9 +25,10 @@ namespace AutoWashPro.BLL.Services
                 .Include(u => u.CustomerProfile)
                     .ThenInclude(cp => cp.Tier)
                 .Include(u => u.Vehicles)
+                    .ThenInclude(v => v.VehicleType) 
                 .FirstOrDefaultAsync(u => u.UserId == userId);
 
-            if (user == null) throw new Exception("User not found.");
+            if (user == null) throw new Exception("Không tìm thấy người dùng.");
 
             return new UserProfileDTO
             {
@@ -42,29 +40,108 @@ namespace AutoWashPro.BLL.Services
                 Vehicles = user.Vehicles.Select(v => new VehicleDTO
                 {
                     LicensePlate = v.LicensePlate,
-                    VehicleType = v.VehicleType
+                    VehicleType = v.VehicleType?.Name
                 }).ToList()
             };
         }
 
-        public async Task<bool> AddVehicleAsync(int userId, CreateVehicleDTO request)
+        public async Task<bool> UpdateProfileAsync(int userId, UpdateUserProfileDTO request)
         {
-            var vehicleCount = await _context.Vehicles.CountAsync(v => v.UserId == userId);
-            if (vehicleCount >= 3) throw new Exception("Maximum 3 vehicles allowed per user.");
+            var user = await _context.Users
+                .Include(u => u.CustomerProfile)
+                .FirstOrDefaultAsync(u => u.UserId == userId);
 
-            var existingVehicle = await _context.Vehicles.FirstOrDefaultAsync(v => v.LicensePlate == request.LicensePlate);
-            if (existingVehicle != null) throw new Exception("License plate already exists.");
+            if (user == null || user.CustomerProfile == null)
+                throw new Exception("Không tìm thấy dữ liệu người dùng.");
 
-            var vehicle = new Vehicle
+            bool isUpdated = false;
+            if (!string.IsNullOrWhiteSpace(request.FullName) && user.CustomerProfile.FullName != request.FullName.Trim())
             {
-                LicensePlate = request.LicensePlate,
-                VehicleType = request.VehicleType,
-                UserId = userId
+                user.CustomerProfile.FullName = request.FullName.Trim();
+                isUpdated = true;
+            }
+            if (!string.IsNullOrWhiteSpace(request.PhoneNumber) && user.PhoneNumber != request.PhoneNumber.Trim())
+            {
+                string newPhone = request.PhoneNumber.Trim();
+                bool phoneExists = await _context.Users.AnyAsync(u => u.PhoneNumber == newPhone);
+                if (phoneExists)
+                    throw new Exception("Số điện thoại này đã được sử dụng bởi tài khoản khác.");
+
+                user.PhoneNumber = newPhone;
+                isUpdated = true;
+            }
+
+            if (isUpdated)
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            return true;
+        }
+
+        public async Task<PagedResultDTO<UserAdminSummaryDTO>> GetAllCustomersAsync(int page, int pageSize, string? searchKeyword, string? statusFilter)
+        {
+            var query = _context.Users
+                .Include(u => u.CustomerProfile)
+                    .ThenInclude(cp => cp.Tier)
+                .Where(u => u.Role == UserRoles.Customer)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchKeyword))
+            {
+                var keyword = searchKeyword.Trim().ToLower();
+                query = query.Where(u => u.PhoneNumber.Contains(keyword)
+                                      || (u.CustomerProfile != null && u.CustomerProfile.FullName.ToLower().Contains(keyword)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(statusFilter))
+            {
+                query = query.Where(u => u.Status == statusFilter.Trim());
+            }
+
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            var users = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(u => new UserAdminSummaryDTO
+                {
+                    UserId = u.UserId,
+                    FullName = u.CustomerProfile != null ? u.CustomerProfile.FullName : "N/A",
+                    PhoneNumber = u.PhoneNumber,
+                    TierName = u.CustomerProfile != null && u.CustomerProfile.Tier != null ? u.CustomerProfile.Tier.TierName : "N/A",
+                    Status = u.Status,
+                    LastVisitDate = u.CustomerProfile != null ? u.CustomerProfile.LastVisitDate : null
+                })
+                .ToListAsync();
+
+            return new PagedResultDTO<UserAdminSummaryDTO>
+            {
+                Items = users,
+                TotalItems = totalItems,
+                TotalPages = totalPages,
+                CurrentPage = page
             };
+        }
 
-            _context.Vehicles.Add(vehicle);
+        public async Task<UserProfileDTO> GetCustomerDetailByAdminAsync(int customerId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == customerId);
+            if (user == null || user.Role != UserRoles.Customer) throw new Exception("Không tìm thấy khách hàng này.");
+
+            return await GetProfileAsync(customerId);
+        }
+
+        public async Task<bool> UpdateCustomerStatusAsync(int customerId, string newStatus)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == customerId);
+            if (user == null || user.Role != UserRoles.Customer) throw new Exception("Không tìm thấy khách hàng này.");
+
+            if (user.Status == newStatus) throw new Exception($"Tài khoản đã ở trạng thái {newStatus} từ trước.");
+
+            user.Status = newStatus;
             await _context.SaveChangesAsync();
-
             return true;
         }
     }

@@ -83,6 +83,10 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITierService, TierService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IOperationService, OperationService>();
+builder.Services.AddScoped<IVehicleService, VehicleService>();
+builder.Services.AddScoped<IVehicleService, AutoWashPro.BLL.Services.VehicleService>();
+builder.Services.AddScoped<IVehicleTypeService, AutoWashPro.BLL.Services.VehicleTypeService>();
+builder.Services.AddScoped<IServiceService, AutoWashPro.BLL.Services.ServiceService>();
 
 var app = builder.Build();
 app.UseMiddleware<AutoWashPro.API.Middlewares.ExceptionMiddleware>();
@@ -96,4 +100,39 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AutoWashDbContext>();
+
+    context.Database.EnsureCreated();
+
+    if (!context.Users.Any(u => u.Role == "Admin"))
+    {
+        var admin = new AutoWashPro.DAL.Entities.User
+        {
+            PhoneNumber = "0999999999",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+            Role = "Admin",
+            Status = "Active"
+        };
+        context.Users.Add(admin);
+
+        var firstTier = context.Tiers.FirstOrDefault() ?? new AutoWashPro.DAL.Entities.Tier { TierName = "AdminTier", PointMultiplier = 1, BookingWindowDays = 30 };
+        if (firstTier.TierId == 0) context.Tiers.Add(firstTier);
+
+        context.SaveChanges();
+
+        context.CustomerProfiles.Add(new AutoWashPro.DAL.Entities.CustomerProfile
+        {
+            UserId = admin.UserId,
+            FullName = "System Admin",
+            TierId = firstTier.TierId,
+            ChurnScore = 0
+        });
+
+        context.SaveChanges();
+    }
+}
+
 app.Run();

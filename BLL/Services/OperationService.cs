@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AutoWashPro.BLL.DTOs;
+﻿using AutoWashPro.BLL.DTOs;
 using AutoWashPro.DAL.Data;
 using AutoWashPro.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -21,17 +16,6 @@ namespace AutoWashPro.BLL.Services
         public OperationService(AutoWashDbContext context)
         {
             _context = context;
-        }
-
-        public async Task<List<ServiceResponseDTO>> GetServicesAsync()
-        {
-            return await _context.Services.Select(s => new ServiceResponseDTO
-            {
-                ServiceId = s.ServiceId,
-                ServiceName = s.ServiceName,
-                BasePrice = s.BasePrice,
-                DurationMinutes = s.DurationMinutes
-            }).ToListAsync();
         }
 
         public async Task<BookingResponseDTO> CreateBookingAsync(int userId, CreateBookingDTO request)
@@ -87,26 +71,6 @@ namespace AutoWashPro.BLL.Services
                     ScheduledTime = b.ScheduledTime,
                     Status = b.Status
                 }).ToListAsync();
-        }
-        public async Task<ServiceResponseDTO> CreateServiceAsync(CreateServiceDTO request)
-        {
-            var service = new Service
-            {
-                ServiceName = request.ServiceName,
-                BasePrice = request.BasePrice,
-                DurationMinutes = request.DurationMinutes
-            };
-
-            _context.Services.Add(service);
-            await _context.SaveChangesAsync();
-
-            return new ServiceResponseDTO
-            {
-                ServiceId = service.ServiceId,
-                ServiceName = service.ServiceName,
-                BasePrice = service.BasePrice,
-                DurationMinutes = service.DurationMinutes
-            };
         }
     }
 }

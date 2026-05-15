@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AutoWashPro.DAL.Entities;
+﻿using AutoWashPro.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoWashPro.DAL.Data
@@ -15,8 +10,10 @@ namespace AutoWashPro.DAL.Data
         public DbSet<User> Users { get; set; }
         public DbSet<CustomerProfile> CustomerProfiles { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
+        public DbSet<VehicleType> VehicleTypes { get; set; }
         public DbSet<Tier> Tiers { get; set; }
         public DbSet<Service> Services { get; set; }
+        public DbSet<ServicePrice> ServicePrices { get; set; }
         public DbSet<Wallet> Wallets { get; set; }
         public DbSet<PointLedger> PointLedgers { get; set; }
         public DbSet<Booking> Bookings { get; set; }

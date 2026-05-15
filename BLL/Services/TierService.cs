@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using AutoWashPro.BLL.DTOs;
 using AutoWashPro.DAL.Data;
 using AutoWashPro.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace AutoWashPro.BLL.Services
 {
@@ -22,39 +18,61 @@ namespace AutoWashPro.BLL.Services
             _context = context;
         }
 
+        public async Task<List<TierResponseDTO>> GetTiersAsync()
+        {
+            return await _context.Tiers
+                .OrderBy(t => t.MinAccumulatedPoints)
+                .Select(t => new TierResponseDTO
+                {
+                    TierId = t.TierId,
+                    TierName = t.TierName,
+                    PointMultiplier = t.PointMultiplier,
+                    BookingWindowDays = t.BookingWindowDays,
+                    MinAccumulatedPoints = t.MinAccumulatedPoints
+                }).ToListAsync();
+        }
+
         public async Task<TierResponseDTO> CreateTierAsync(CreateTierDTO request)
         {
             var tier = new Tier
             {
                 TierName = request.TierName,
                 PointMultiplier = request.PointMultiplier,
-                BookingWindowDays = request.BookingWindowDays
+                BookingWindowDays = request.BookingWindowDays,
+                MinAccumulatedPoints = request.MinAccumulatedPoints
             };
 
             _context.Tiers.Add(tier);
             await _context.SaveChangesAsync();
 
-            return new TierResponseDTO
-            {
-                TierId = tier.TierId,
-                TierName = tier.TierName,
-                PointMultiplier = tier.PointMultiplier,
-                BookingWindowDays = tier.BookingWindowDays
-            };
+            return await GetTierById(tier.TierId);
         }
 
-        public async Task<List<TierResponseDTO>> GetAllTiersAsync()
+        public async Task<TierResponseDTO> UpdateTierAsync(int id, UpdateTierDTO request)
         {
-            var tiers = await _context.Tiers
-                .Select(t => new TierResponseDTO
-                {
-                    TierId = t.TierId,
-                    TierName = t.TierName,
-                    PointMultiplier = t.PointMultiplier,
-                    BookingWindowDays = t.BookingWindowDays
-                }).ToListAsync();
+            var tier = await _context.Tiers.FindAsync(id);
+            if (tier == null) throw new Exception("Không tìm thấy hạng thành viên.");
 
-            return tiers;
+            tier.TierName = request.TierName;
+            tier.PointMultiplier = request.PointMultiplier;
+            tier.BookingWindowDays = request.BookingWindowDays;
+            tier.MinAccumulatedPoints = request.MinAccumulatedPoints;
+
+            await _context.SaveChangesAsync();
+            return await GetTierById(tier.TierId);
+        }
+
+        private async Task<TierResponseDTO> GetTierById(int id)
+        {
+            var t = await _context.Tiers.FindAsync(id);
+            return new TierResponseDTO
+            {
+                TierId = t.TierId,
+                TierName = t.TierName,
+                PointMultiplier = t.PointMultiplier,
+                BookingWindowDays = t.BookingWindowDays,
+                MinAccumulatedPoints = t.MinAccumulatedPoints
+            };
         }
     }
 }

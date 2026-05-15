@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace AutoWashPro.DAL.Entities
@@ -18,8 +13,12 @@ namespace AutoWashPro.DAL.Entities
         public string TierName { get; set; }
 
         public double PointMultiplier { get; set; }
+
         public int BookingWindowDays { get; set; }
 
-        public ICollection<CustomerProfile> Customers { get; set; }
+        [Required]
+        public int MinAccumulatedPoints { get; set; }
+
+        public ICollection<CustomerProfile> CustomerProfiles { get; set; }
     }
 }

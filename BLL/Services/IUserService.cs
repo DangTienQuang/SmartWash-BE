@@ -1,16 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using AutoWashPro.BLL.DTOs;
-using System.Threading.Tasks;
 
 namespace AutoWashPro.BLL.Services
 {
     public interface IUserService
     {
+
         Task<UserProfileDTO> GetProfileAsync(int userId);
-        Task<bool> AddVehicleAsync(int userId, CreateVehicleDTO request);
+        Task<bool> UpdateProfileAsync(int userId, UpdateUserProfileDTO request);
+
+
+        Task<PagedResultDTO<UserAdminSummaryDTO>> GetAllCustomersAsync(int page, int pageSize, string? searchKeyword, string? statusFilter);
+        Task<UserProfileDTO> GetCustomerDetailByAdminAsync(int customerId);
+        Task<bool> UpdateCustomerStatusAsync(int customerId, string newStatus);
     }
 }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace AutoWashPro.DAL.Entities
@@ -15,8 +11,9 @@ namespace AutoWashPro.DAL.Entities
         [Required]
         [MaxLength(100)]
         public string ServiceName { get; set; }
-
-        public decimal BasePrice { get; set; }
-        public int DurationMinutes { get; set; }
+        public string? Description { get; set; }
+        public bool IsActive { get; set; } = true;
+        public ICollection<ServicePrice> ServicePrices { get; set; }
+        public ICollection<Booking> Bookings { get; set; }
     }
 }

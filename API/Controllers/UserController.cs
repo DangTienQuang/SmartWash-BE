@@ -20,8 +20,8 @@ namespace AutoWashPro.API.Controllers
             _userService = userService;
         }
 
-        [HttpGet("profile")]
-        public async Task<IActionResult> GetProfile()
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMyProfile()
         {
             try
             {
@@ -39,8 +39,8 @@ namespace AutoWashPro.API.Controllers
             }
         }
 
-        [HttpPost("vehicles")]
-        public async Task<IActionResult> AddVehicle([FromBody] CreateVehicleDTO request)
+        [HttpPut("me")]
+        public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateUserProfileDTO request)
         {
             try
             {
@@ -48,9 +48,9 @@ namespace AutoWashPro.API.Controllers
                 if (userIdClaim == null) return Unauthorized(new { statusCode = 401, message = "Unauthorized" });
 
                 int userId = int.Parse(userIdClaim);
-                await _userService.AddVehicleAsync(userId, request);
+                await _userService.UpdateProfileAsync(userId, request);
 
-                return Created("", new { statusCode = 201, message = "Success" });
+                return Ok(new { statusCode = 200, message = "Cập nhật thông tin cá nhân thành công." });
             }
             catch (Exception ex)
             {

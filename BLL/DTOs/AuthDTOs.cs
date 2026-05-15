@@ -31,6 +31,25 @@ namespace AutoWashPro.BLL.DTOs
         public string PhoneNumber { get; set; }
         public string FullName { get; set; }
         public string Token { get; set; }
+        public string RefreshToken { get; set; }
         public string Role { get; set; }
+    }
+    public class RefreshTokenDTO
+    {
+        [Required(ErrorMessage = "Access Token không được để trống.")]
+        public string AccessToken { get; set; }
+
+        [Required(ErrorMessage = "Refresh Token không được để trống.")]
+        public string RefreshToken { get; set; }
+    }
+
+    public class ChangePasswordDTO
+    {
+        [Required(ErrorMessage = "Mật khẩu cũ không được để trống.")]
+        public string OldPassword { get; set; }
+
+        [Required(ErrorMessage = "Mật khẩu mới không được để trống.")]
+        [MinLength(6, ErrorMessage = "Mật khẩu mới phải có ít nhất 6 ký tự.")]
+        public string NewPassword { get; set; }
     }
 }

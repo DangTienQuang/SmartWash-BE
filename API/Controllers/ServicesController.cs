@@ -1,5 +1,6 @@
 ﻿using AutoWashPro.BLL.DTOs;
 using AutoWashPro.BLL.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -10,19 +11,20 @@ namespace AutoWashPro.API.Controllers
     [ApiController]
     public class ServicesController : ControllerBase
     {
-        private readonly IOperationService _operationService;
+        private readonly IServiceService _serviceService;
 
-        public ServicesController(IOperationService operationService)
+        public ServicesController(IServiceService serviceService)
         {
-            _operationService = operationService;
+            _serviceService = serviceService;
         }
 
+        [AllowAnonymous] // Mở public để App chưa đăng nhập vẫn thấy dịch vụ
         [HttpGet]
-        public async Task<IActionResult> GetServices()
+        public async Task<IActionResult> GetActiveServices()
         {
             try
             {
-                var result = await _operationService.GetServicesAsync();
+                var result = await _serviceService.GetActiveServicesAsync();
                 return Ok(new { statusCode = 200, message = "Success", data = result });
             }
             catch (Exception ex)
@@ -30,13 +32,15 @@ namespace AutoWashPro.API.Controllers
                 return BadRequest(new { statusCode = 400, message = ex.Message });
             }
         }
-        [HttpPost]
-        public async Task<IActionResult> CreateService([FromBody] CreateServiceDTO request)
+
+        [AllowAnonymous]
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetServiceById(int id)
         {
             try
             {
-                var result = await _operationService.CreateServiceAsync(request);
-                return Created("", new { statusCode = 201, message = "Success", data = result });
+                var result = await _serviceService.GetServiceByIdAsync(id);
+                return Ok(new { statusCode = 200, message = "Success", data = result });
             }
             catch (Exception ex)
             {
@@ -44,5 +48,4 @@ namespace AutoWashPro.API.Controllers
             }
         }
     }
-
 }
