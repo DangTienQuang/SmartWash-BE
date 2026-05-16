@@ -1,0 +1,52 @@
+﻿using BLL.DTOs;
+using BLL.Helpers;
+using BLL.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
+namespace API.Controllers
+{
+    [ApiController]
+    [Route("api/v1/ai")]
+    [EnableRateLimiting("AIChatPolicy")]
+    [Authorize(Roles = "Customer")]
+    public class AIChatbotController : ControllerBase
+    {
+        private readonly IAIChatbotService _aiService;
+
+        public AIChatbotController(
+            IAIChatbotService aiService)
+        {
+            _aiService = aiService;
+        }
+
+        [HttpPost("chat")]
+        public async Task<IActionResult> Chat(
+            [FromBody] AIChatRequestDTO request)
+        {
+            int userId =
+                ClaimHelper.GetUserId(User);
+
+            var result = await _aiService
+                .ChatAsync(userId, request);
+
+            return Ok(result);
+        }
+
+        [HttpGet("recommendation")]
+        public async Task<IActionResult> Recommendation()
+        {
+            int userId =
+                ClaimHelper.GetUserId(User);
+
+            var result = await _aiService
+                .GetRecommendationAsync(userId);
+
+            return Ok(new
+            {
+                recommendation = result
+            });
+        }
+    }
+}
