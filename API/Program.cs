@@ -106,8 +106,6 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AutoWashDbContext>();
 
-    context.Database.EnsureCreated();
-
     if (!context.Users.Any(u => u.Role == "Admin"))
     {
         var admin = new AutoWashPro.DAL.Entities.User
@@ -119,7 +117,15 @@ using (var scope = app.Services.CreateScope())
         };
         context.Users.Add(admin);
 
-        var firstTier = context.Tiers.FirstOrDefault() ?? new AutoWashPro.DAL.Entities.Tier { TierName = "AdminTier", PointMultiplier = 1, BookingWindowDays = 30 };
+        var firstTier = context.Tiers.FirstOrDefault(t => t.MinAccumulatedPoints == 0)
+            ?? new AutoWashPro.DAL.Entities.Tier
+            {
+                TierName = "Standard",
+                PointMultiplier = 1.0,
+                BookingWindowDays = 7,
+                MinAccumulatedPoints = 0
+            };
+
         if (firstTier.TierId == 0) context.Tiers.Add(firstTier);
 
         context.SaveChanges();
