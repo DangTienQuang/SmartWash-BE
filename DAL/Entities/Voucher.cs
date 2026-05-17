@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,11 +15,13 @@ namespace AutoWashPro.DAL.Entities
 
         [Required]
         [MaxLength(50)]
-        public string Code { get; set; }
+        public required string Code { get; set; }
 
         public decimal DiscountAmount { get; set; }
         public int MaxUsages { get; set; }
 
         public DateTime ExpiryDate { get; set; }
+
+        public int PointsRequired { get; set; }
     }
 }

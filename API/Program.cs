@@ -1,4 +1,4 @@
-﻿using AutoWashPro.BLL.Services;
+using AutoWashPro.BLL.Services;
 using AutoWashPro.DAL.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +7,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Text;
+using PayOS;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,18 @@ builder.Services.AddControllers()
             });
         };
     });
+
+// Configure PayOS
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    return new PayOSClient(
+        config["PayOS:ClientId"] ?? "",
+        config["PayOS:ApiKey"] ?? "",
+        config["PayOS:ChecksumKey"] ?? ""
+    );
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -54,6 +67,10 @@ builder.Services.AddSwaggerGen(c =>
             new string[] {}
         }
     });
+
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
 });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -61,7 +78,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AutoWashDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 4, 0))));
 
-var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "Key_Mac_Dinh_Sieu_Bao_Mat_1234567890";
+var key = Encoding.ASCII.GetBytes(jwtKey);
 builder.Services.AddAuthentication(x =>
 {
     x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -88,6 +106,8 @@ builder.Services.AddScoped<IVehicleService, AutoWashPro.BLL.Services.VehicleServ
 builder.Services.AddScoped<IVehicleTypeService, AutoWashPro.BLL.Services.VehicleTypeService>();
 builder.Services.AddScoped<IServiceService, AutoWashPro.BLL.Services.ServiceService>();
 builder.Services.AddScoped<IBookingService, AutoWashPro.BLL.Services.BookingService>();
+builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.AddScoped<IVoucherService, VoucherService>();
 
 var app = builder.Build();
 app.UseMiddleware<AutoWashPro.API.Middlewares.ExceptionMiddleware>();

@@ -1,4 +1,4 @@
-﻿using AutoWashPro.DAL.Entities;
+using AutoWashPro.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoWashPro.DAL.Data
@@ -7,20 +7,20 @@ namespace AutoWashPro.DAL.Data
     {
         public AutoWashDbContext(DbContextOptions<AutoWashDbContext> options) : base(options) { }
 
-        public DbSet<User> Users { get; set; }
-        public DbSet<CustomerProfile> CustomerProfiles { get; set; }
-        public DbSet<Vehicle> Vehicles { get; set; }
-        public DbSet<VehicleType> VehicleTypes { get; set; }
-        public DbSet<Tier> Tiers { get; set; }
-        public DbSet<Service> Services { get; set; }
-        public DbSet<ServicePrice> ServicePrices { get; set; }
-        public DbSet<Wallet> Wallets { get; set; }
-        public DbSet<PointLedger> PointLedgers { get; set; }
-        public DbSet<Booking> Bookings { get; set; }
-        public DbSet<Transaction> Transactions { get; set; }
-        public DbSet<Voucher> Vouchers { get; set; }
-        public DbSet<UserVoucher> UserVouchers { get; set; }
-        public DbSet<TimeSlot> TimeSlots { get; set; }
+        public DbSet<User> Users { get; set; } = null!;
+        public DbSet<CustomerProfile> CustomerProfiles { get; set; } = null!;
+        public DbSet<Vehicle> Vehicles { get; set; } = null!;
+        public DbSet<VehicleType> VehicleTypes { get; set; } = null!;
+        public DbSet<Tier> Tiers { get; set; } = null!;
+        public DbSet<Service> Services { get; set; } = null!;
+        public DbSet<ServicePrice> ServicePrices { get; set; } = null!;
+        public DbSet<Wallet> Wallets { get; set; } = null!;
+        public DbSet<PointLedger> PointLedgers { get; set; } = null!;
+        public DbSet<Booking> Bookings { get; set; } = null!;
+        public DbSet<Transaction> Transactions { get; set; } = null!;
+        public DbSet<Voucher> Vouchers { get; set; } = null!;
+        public DbSet<UserVoucher> UserVouchers { get; set; } = null!;
+        public DbSet<TimeSlot> TimeSlots { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

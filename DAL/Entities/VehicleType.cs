@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace AutoWashPro.DAL.Entities
@@ -10,10 +10,10 @@ namespace AutoWashPro.DAL.Entities
 
         [Required]
         [MaxLength(50)]
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
         public string? Description { get; set; }
 
-        public ICollection<Vehicle> Vehicles { get; set; }
+        public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
     }
 }

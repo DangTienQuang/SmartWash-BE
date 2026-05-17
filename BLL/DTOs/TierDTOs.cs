@@ -1,11 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace AutoWashPro.BLL.DTOs
 {
     public class TierResponseDTO
     {
         public int TierId { get; set; }
-        public string TierName { get; set; }
+        public required string TierName { get; set; }
         public double PointMultiplier { get; set; }
         public int BookingWindowDays { get; set; }
         public int MinAccumulatedPoints { get; set; }
@@ -14,7 +14,7 @@ namespace AutoWashPro.BLL.DTOs
     public class CreateTierDTO
     {
         [Required(ErrorMessage = "Tên hạng không được để trống.")]
-        public string TierName { get; set; }
+        public required string TierName { get; set; }
 
         [Range(1.0, 5.0, ErrorMessage = "Hệ số nhân điểm phải từ 1.0 đến 5.0.")]
         public double PointMultiplier { get; set; }
