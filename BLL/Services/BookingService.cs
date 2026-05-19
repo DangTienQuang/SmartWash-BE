@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -87,6 +87,7 @@ namespace AutoWashPro.BLL.Services
                     Status = b.Status,
                     OriginalPrice = b.OriginalPrice,
                     PointDiscountAmount = b.PointDiscountAmount,
+                    VoucherDiscountAmount = b.VoucherDiscountAmount,
                     FinalAmount = b.FinalAmount
                 }).ToListAsync();
         }
@@ -108,6 +109,7 @@ namespace AutoWashPro.BLL.Services
                 Status = booking.Status,
                 OriginalPrice = booking.OriginalPrice,
                 PointDiscountAmount = booking.PointDiscountAmount,
+                VoucherDiscountAmount = booking.VoucherDiscountAmount,
                 FinalAmount = booking.FinalAmount
             };
         }
@@ -121,11 +123,11 @@ namespace AutoWashPro.BLL.Services
 
             if (newStatus == "Completed" && booking.Status != "Completed")
             {
-                if (booking.UserId.HasValue)
+                if (booking.UserId > 0)
                 {
                     var userProfile = await _context.CustomerProfiles
                         .Include(cp => cp.Tier)
-                        .FirstOrDefaultAsync(cp => cp.UserId == booking.UserId.Value);
+                        .FirstOrDefaultAsync(cp => cp.UserId == booking.UserId);
 
                     if (userProfile != null && userProfile.Tier != null && booking.FinalAmount > 0)
                     {
@@ -135,7 +137,7 @@ namespace AutoWashPro.BLL.Services
                         {
                             var pointLedger = new PointLedger
                             {
-                                UserId = booking.UserId.Value,
+                                UserId = booking.UserId,
                                 PointsAdded = pointsEarned,
                                 Reason = $"Hoàn thành dịch vụ #{booking.BookingId}",
                                 ExpiryDate = DateTime.UtcNow.AddMonths(12),
@@ -171,17 +173,50 @@ namespace AutoWashPro.BLL.Services
 
             decimal originalPrice = servicePrice.Price;
             decimal pointDiscount = 0;
+            decimal voucherDiscount = 0;
+            UserVoucher? userVoucher = null;
 
+            // 1. Tính giảm giá từ Voucher (Ưu tiên áp dụng trước)
+            if (request.VoucherId.HasValue)
+            {
+                userVoucher = await _context.UserVouchers
+                    .Include(uv => uv.Voucher)
+                    .FirstOrDefaultAsync(uv => uv.VoucherId == request.VoucherId.Value && uv.UserId == userId);
+
+                if (userVoucher == null) throw new Exception("Bạn không sở hữu Voucher này.");
+                if (userVoucher.IsUsed) throw new Exception("Voucher này đã được sử dụng.");
+                if (userVoucher.Voucher.ExpiryDate < DateTime.UtcNow) throw new Exception("Voucher này đã hết hạn.");
+
+                voucherDiscount = userVoucher.Voucher.DiscountAmount;
+            }
+
+            // 2. Tính giảm giá từ điểm tích lũy
             if (request.PointsToUse > 0)
             {
                 pointDiscount = request.PointsToUse * 100;
-                if (pointDiscount > originalPrice) pointDiscount = originalPrice;
             }
 
-            decimal finalAmount = originalPrice - pointDiscount;
+            // 3. Tính tổng số tiền cuối cùng (Đảm bảo không âm)
+            decimal totalDiscount = pointDiscount + voucherDiscount;
+            if (totalDiscount > originalPrice)
+            {
+                // Nếu tổng giảm giá vượt quá giá gốc, ưu tiên Voucher trước, phần còn lại là điểm
+                if (voucherDiscount >= originalPrice)
+                {
+                    voucherDiscount = originalPrice;
+                    pointDiscount = 0;
+                }
+                else
+                {
+                    pointDiscount = originalPrice - voucherDiscount;
+                }
+            }
+
+            decimal finalAmount = originalPrice - voucherDiscount - pointDiscount;
 
             var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
             if (wallet == null || wallet.Balance < finalAmount) throw new Exception($"Số dư ví không đủ để đặt cọc. Cần: {finalAmount:N0}đ");
+            
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
@@ -196,12 +231,19 @@ namespace AutoWashPro.BLL.Services
                 };
                 _context.Transactions.Add(paymentTx);
 
+                // Cập nhật trạng thái Voucher
+                if (userVoucher != null)
+                {
+                    userVoucher.IsUsed = true;
+                    userVoucher.UsedDate = DateTime.UtcNow;
+                }
+
                 if (request.PointsToUse > 0)
                 {
                     var pointLedger = new PointLedger
                     {
                         UserId = userId,
-                        PointsDeducted = request.PointsToUse,
+                        PointsDeducted = (int)(pointDiscount / 100), // Chỉ trừ số điểm thực tế tương ứng với số tiền giảm
                         Reason = "Quy đổi điểm giảm giá đặt lịch"
                     };
                     _context.PointLedgers.Add(pointLedger);
@@ -215,8 +257,10 @@ namespace AutoWashPro.BLL.Services
                     ScheduledTime = targetDateTime,
                     Status = "Pending",
                     OriginalPrice = originalPrice,
-                    PointsUsed = request.PointsToUse,
+                    PointsUsed = (int)(pointDiscount / 100),
                     PointDiscountAmount = pointDiscount,
+                    AppliedVoucherId = request.VoucherId,
+                    VoucherDiscountAmount = voucherDiscount,
                     FinalAmount = finalAmount
                 };
                 _context.Bookings.Add(booking);
@@ -236,6 +280,7 @@ namespace AutoWashPro.BLL.Services
                     Status = booking.Status,
                     OriginalPrice = booking.OriginalPrice,
                     PointDiscountAmount = booking.PointDiscountAmount,
+                    VoucherDiscountAmount = booking.VoucherDiscountAmount,
                     FinalAmount = booking.FinalAmount
                 };
             }

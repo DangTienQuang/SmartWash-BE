@@ -9,9 +9,10 @@ namespace AutoWashPro.DAL.Entities
         [Key]
         public int BookingId { get; set; }
 
+        [Required]
         [ForeignKey("User")]
-        public int? UserId { get; set; }
-        public User? User { get; set; }
+        public int UserId { get; set; }
+        public User User { get; set; } = null!;
 
         [Required]
         [MaxLength(20)]

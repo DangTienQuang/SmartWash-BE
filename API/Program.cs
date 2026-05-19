@@ -125,6 +125,9 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AutoWashDbContext>();
+    
+    // Tự động cập nhật database nếu có migration mới
+    context.Database.Migrate();
 
     if (!context.Users.Any(u => u.Role == "Admin"))
     {

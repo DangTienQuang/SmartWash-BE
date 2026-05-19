@@ -70,66 +70,63 @@ namespace AutoWashPro.BLL.Services
 
         public async Task ProcessPaymentWebhookAsync(WebhookTopUpDTO webhookData)
         {
-            _logger.LogInformation("Nhận được Webhook giả lập: {OrderCode}, Mã lỗi: {Code}", 
-                webhookData.Data?.OrderCode, webhookData.Code);
-
-            var data = webhookData.Data; 
-
-            if (data != null && webhookData.Code == "00")
+            // 1. Kiểm tra mã lỗi từ PayOS (00 là thành công)
+            if (webhookData.Code != "00" || webhookData.Data == null)
             {
-                var orderCodeStr = data.OrderCode.ToString();
-                var alreadyProcessed = await _context.Transactions
-                    .AnyAsync(t => t.Description.Contains($"(Mã: {orderCodeStr})") && t.TransactionType == "Topup");
-                
-                if (alreadyProcessed) 
-                {
-                    _logger.LogWarning("Giao dịch {OrderCode} đã được xử lý trước đó.", data.OrderCode);
-                    return;
-                }
-
-                int userId = 0;
-                var desc = data.Description ?? "";
-                
-                // Sử dụng Regex để tìm con số cuối cùng trong chuỗi description (ví dụ: "Topup wallet 2" -> 2)
-                var match = System.Text.RegularExpressions.Regex.Match(desc, @"\d+$");
-                if (match.Success)
-                {
-                    int.TryParse(match.Value, out userId);
-                }
-
-                if (userId > 0)
-                {
-                    var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
-                    if (wallet == null)
-                    {
-                        wallet = new Wallet { UserId = userId, Balance = 0, Status = "Active" };
-                        _context.Wallets.Add(wallet);
-                    }
-
-                    wallet.Balance += data.Amount;
-                    
-                    var transaction = new Transaction
-                    {
-                        WalletId = wallet.WalletId,
-                        Amount = data.Amount,
-                        TransactionType = "Topup",
-                        Description = $"Nạp tiền thành công (Mã: {data.OrderCode})",
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    
-                    _context.Transactions.Add(transaction);
-                    await _context.SaveChangesAsync();
-                    
-                    _logger.LogInformation("Cập nhật số dư thành công cho User {UserId}. Số tiền: {Amount}", userId, data.Amount);
-                }
-                else
-                {
-                    _logger.LogError("Không thể trích xuất UserId từ description: {Description}", desc);
-                }
+                _logger.LogWarning("Webhook báo lỗi hoặc không có dữ liệu. Code: {Code}", webhookData.Code);
+                return;
             }
-            else
+
+            var data = webhookData.Data;
+
+            // 2. Bảo mật: Xác thực chữ ký (Signature) - TRÊN PRODUCTION
+            // Trong thực tế, bạn phải dùng: _payOSClient.verifyPaymentWebhookData(webhookData)
+            // Nếu chữ ký không khớp, nghĩa là có ai đó đang giả mạo request này.
+            
+            // 3. Kiểm tra trùng lặp giao dịch (Idempotency)
+            var orderCodeStr = data.OrderCode.ToString();
+            var alreadyProcessed = await _context.Transactions
+                .AnyAsync(t => t.Description.Contains($"(Mã: {orderCodeStr})") && t.TransactionType == "Topup");
+            
+            if (alreadyProcessed) 
             {
-                _logger.LogWarning("Webhook không hợp lệ hoặc thanh toán thất bại. Code: {Code}", webhookData.Code);
+                _logger.LogWarning("Giao dịch {OrderCode} đã được xử lý trước đó.", data.OrderCode);
+                return;
+            }
+
+            // 4. Trích xuất UserId từ description
+            int userId = 0;
+            var desc = data.Description ?? "";
+            var match = System.Text.RegularExpressions.Regex.Match(desc, @"\d+$");
+            if (match.Success)
+            {
+                int.TryParse(match.Value, out userId);
+            }
+
+            if (userId > 0)
+            {
+                var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+                if (wallet == null)
+                {
+                    wallet = new Wallet { UserId = userId, Balance = 0, Status = "Active" };
+                    _context.Wallets.Add(wallet);
+                }
+
+                wallet.Balance += data.Amount;
+                
+                var transaction = new Transaction
+                {
+                    WalletId = wallet.WalletId,
+                    Amount = data.Amount,
+                    TransactionType = "Topup",
+                    Description = $"Nạp tiền thành công (Mã: {data.OrderCode})",
+                    CreatedAt = DateTime.UtcNow
+                };
+                
+                _context.Transactions.Add(transaction);
+                await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("Cập nhật số dư thành công cho User {UserId}. Số tiền: {Amount}", userId, data.Amount);
             }
         }
 

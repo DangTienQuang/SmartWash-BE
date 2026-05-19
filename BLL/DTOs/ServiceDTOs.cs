@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace AutoWashPro.BLL.DTOs
@@ -6,29 +6,29 @@ namespace AutoWashPro.BLL.DTOs
     public class ServiceDTO
     {
         public int ServiceId { get; set; }
-        public string ServiceName { get; set; }
+        public required string ServiceName { get; set; }
         public string? Description { get; set; }
         public bool IsActive { get; set; }
-        public List<ServicePriceDTO> Prices { get; set; }
+        public required List<ServicePriceDTO> Prices { get; set; }
     }
 
     public class ServicePriceDTO
     {
         public int VehicleTypeId { get; set; }
-        public string VehicleTypeName { get; set; }
+        public required string VehicleTypeName { get; set; }
         public decimal Price { get; set; }
         public int DurationMinutes { get; set; }
     }
     public class CreateOrUpdateServiceDTO
     {
         [Required(ErrorMessage = "Tên dịch vụ không được để trống.")]
-        public string ServiceName { get; set; }
+        public required string ServiceName { get; set; }
 
         public string? Description { get; set; }
 
         [Required(ErrorMessage = "Phải cấu hình ít nhất 1 mức giá cho dịch vụ.")]
         [MinLength(1, ErrorMessage = "Phải cấu hình ít nhất 1 mức giá cho dịch vụ.")]
-        public List<CreateServicePriceDTO> Prices { get; set; }
+        public required List<CreateServicePriceDTO> Prices { get; set; }
     }
 
     public class CreateServicePriceDTO

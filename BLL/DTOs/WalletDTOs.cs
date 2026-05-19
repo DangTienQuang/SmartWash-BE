@@ -44,6 +44,7 @@ namespace AutoWashPro.BLL.DTOs
     {
         public string Code { get; set; } = "00";
         public WebhookDataDTO? Data { get; set; }
+        public string Signature { get; set; } = "test-signature-ignore-on-local";
     }
 
     public class WebhookDataDTO
