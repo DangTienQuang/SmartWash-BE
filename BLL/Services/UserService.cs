@@ -55,19 +55,32 @@ namespace AutoWashPro.BLL.Services
                 throw new Exception("Không tìm thấy dữ liệu người dùng.");
 
             bool isUpdated = false;
+
             if (!string.IsNullOrWhiteSpace(request.FullName) && user.CustomerProfile.FullName != request.FullName.Trim())
             {
                 user.CustomerProfile.FullName = request.FullName.Trim();
                 isUpdated = true;
             }
+
             if (!string.IsNullOrWhiteSpace(request.PhoneNumber) && user.PhoneNumber != request.PhoneNumber.Trim())
             {
                 string newPhone = request.PhoneNumber.Trim();
-                bool phoneExists = await _context.Users.AnyAsync(u => u.PhoneNumber == newPhone);
+                bool phoneExists = await _context.Users.AnyAsync(u => u.PhoneNumber == newPhone && u.UserId != userId);
                 if (phoneExists)
                     throw new Exception("Số điện thoại này đã được sử dụng bởi tài khoản khác.");
 
                 user.PhoneNumber = newPhone;
+                isUpdated = true;
+            }
+            if (!string.IsNullOrWhiteSpace(request.Email) && user.Email != request.Email.Trim())
+            {
+                string newEmail = request.Email.Trim().ToLower();
+
+                bool emailExists = await _context.Users.AnyAsync(u => u.Email == newEmail && u.UserId != userId);
+                if (emailExists)
+                    throw new Exception("Email này đã được sử dụng bởi tài khoản khác.");
+
+                user.Email = newEmail;
                 isUpdated = true;
             }
 
@@ -78,7 +91,6 @@ namespace AutoWashPro.BLL.Services
 
             return true;
         }
-
         public async Task<PagedResultDTO<UserAdminSummaryDTO>> GetAllCustomersAsync(int page, int pageSize, string? searchKeyword, string? statusFilter)
         {
             var query = _context.Users

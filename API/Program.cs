@@ -1,13 +1,14 @@
 using AutoWashPro.BLL.Services;
 using AutoWashPro.DAL.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Text;
 using PayOS;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -98,16 +99,38 @@ builder.Services.AddAuthentication(x =>
     };
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("AIChatPolicy", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey:
+                context.User.Identity?.Name
+                ?? context.Connection.RemoteIpAddress?.ToString(),
+
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder =
+                    QueueProcessingOrder.OldestFirst,
+                QueueLimit = 2
+            }));
+});
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITierService, TierService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IVehicleService, AutoWashPro.BLL.Services.VehicleService>();
 builder.Services.AddScoped<IVehicleTypeService, AutoWashPro.BLL.Services.VehicleTypeService>();
 builder.Services.AddScoped<IServiceService, AutoWashPro.BLL.Services.ServiceService>();
 builder.Services.AddScoped<IBookingService, AutoWashPro.BLL.Services.BookingService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IVoucherService, VoucherService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IAIChatbotService,AIChatbotService>();
+builder.Services.AddScoped<IAIModerationService, AIModerationService>();
+builder.Services.AddHttpClient<ILLMService, GeminiAIService>();
+builder.Services.AddScoped<IAIIntentService, AIIntentService>();
 
 var app = builder.Build();
 app.UseMiddleware<AutoWashPro.API.Middlewares.ExceptionMiddleware>();
@@ -119,6 +142,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 

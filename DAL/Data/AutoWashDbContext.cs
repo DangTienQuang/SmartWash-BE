@@ -21,6 +21,8 @@ namespace AutoWashPro.DAL.Data
         public DbSet<Voucher> Vouchers { get; set; } = null!;
         public DbSet<UserVoucher> UserVouchers { get; set; } = null!;
         public DbSet<TimeSlot> TimeSlots { get; set; } = null!;
+        public DbSet<AIConversationLog> AIConversationLogs { get; set; } = null!;
+        public DbSet<AIKnowledgeBase> AIKnowledgeBases { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

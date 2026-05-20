@@ -1,9 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace AutoWashPro.DAL.Entities
@@ -16,6 +12,9 @@ namespace AutoWashPro.DAL.Entities
         [Required]
         [MaxLength(20)]
         public required string PhoneNumber { get; set; }
+
+        [MaxLength(100)]
+        public string? Email { get; set; }
 
         [Required]
         public required string PasswordHash { get; set; }
@@ -31,5 +30,6 @@ namespace AutoWashPro.DAL.Entities
         public DateTime? RefreshTokenExpiryTime { get; set; }
         public CustomerProfile CustomerProfile { get; set; } = null!;
         public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
+        public ICollection<AIConversationLog> AIConversationLogs { get; set; } = new List<AIConversationLog>();
     }
 }
