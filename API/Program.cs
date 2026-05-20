@@ -88,6 +88,7 @@ builder.Services.AddScoped<IVehicleService, AutoWashPro.BLL.Services.VehicleServ
 builder.Services.AddScoped<IVehicleTypeService, AutoWashPro.BLL.Services.VehicleTypeService>();
 builder.Services.AddScoped<IServiceService, AutoWashPro.BLL.Services.ServiceService>();
 builder.Services.AddScoped<IBookingService, AutoWashPro.BLL.Services.BookingService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 app.UseMiddleware<AutoWashPro.API.Middlewares.ExceptionMiddleware>();
