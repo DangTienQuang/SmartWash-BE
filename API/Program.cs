@@ -1,6 +1,7 @@
 ﻿using AutoWashPro.BLL.Services;
 using AutoWashPro.DAL.Data;
 using BLL.Services;
+using DAL.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -82,6 +83,32 @@ builder.Services.AddAuthentication(x =>
     };
 });
 
+// Read paths from config
+var modelPath = Path.Combine(
+    AppDomain.CurrentDomain.BaseDirectory, "Models/license_plate.onnx");
+
+var tessDataPath = Path.Combine(
+    AppDomain.CurrentDomain.BaseDirectory, "tessdata");
+
+var tessLangs = builder.Configuration["Tesseract:Languages"]
+                   ?? "eng+vie";
+
+// Register as singletons (created once, reused for every request)
+builder.Services.AddSingleton(new OnnxInferenceEngine(modelPath));
+var detModelPath = Path.Combine(
+    AppDomain.CurrentDomain.BaseDirectory, "Models/det_model.onnx");
+var recModelPath = Path.Combine(
+    AppDomain.CurrentDomain.BaseDirectory, "Models/rec_model.onnx");
+var dictPath = Path.Combine(
+    AppDomain.CurrentDomain.BaseDirectory, "Models/dict.txt");
+
+builder.Services.AddSingleton<PaddleOcrService>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<PaddleOcrService>>();
+    return new PaddleOcrService(
+        detModelPath, recModelPath, dictPath, logger);
+});
+
 builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy("AIChatPolicy", context =>
@@ -112,6 +139,7 @@ builder.Services.AddScoped<IAIChatbotService,AIChatbotService>();
 builder.Services.AddScoped<IAIModerationService, AIModerationService>();
 builder.Services.AddHttpClient<ILLMService, GeminiAIService>();
 builder.Services.AddScoped<IAIIntentService, AIIntentService>();
+builder.Services.AddScoped<ILicensePlateService, LicensePlateService>();
 
 var app = builder.Build();
 app.UseMiddleware<AutoWashPro.API.Middlewares.ExceptionMiddleware>();
