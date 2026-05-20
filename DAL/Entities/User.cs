@@ -16,7 +16,8 @@ namespace AutoWashPro.DAL.Entities
         [Required]
         [MaxLength(20)]
         public string PhoneNumber { get; set; }
-
+        [MaxLength(100)]
+        public string? Email { get; set; }
         [Required]
         public string PasswordHash { get; set; }
 

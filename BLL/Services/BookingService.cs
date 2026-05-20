@@ -12,10 +12,12 @@ namespace AutoWashPro.BLL.Services
     public class BookingService : IBookingService
     {
         private readonly AutoWashDbContext _context;
+        private readonly IEmailService _emailService;
 
-        public BookingService(AutoWashDbContext context)
+        public BookingService(AutoWashDbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         public async Task<List<TimeSlotResponseDTO>> GetAvailableSlotsAsync(int userId, DateTime targetDate)
@@ -226,7 +228,57 @@ namespace AutoWashPro.BLL.Services
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
+                try
+                {
+                    var user = await _context.Users
+                        .Include(u => u.CustomerProfile)
+                        .FirstOrDefaultAsync(u => u.UserId == userId);
 
+                    if (user != null && !string.IsNullOrEmpty(user.Email))
+                    {
+                        string subject = $"[SmartWash] Đặt lịch thành công - #{booking.BookingId}";
+                        string customerName = user.CustomerProfile?.FullName ?? "Quý khách";
+
+                        string htmlMessage = $@"
+                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;'>
+                            <h2 style='color: #007bff; text-align: center;'>SMARTWASH XÁC NHẬN ĐẶT LỊCH</h2>
+                            <p>Xin chào <b>{customerName}</b>,</p>
+                            <p>Cảm ơn bạn đã sử dụng dịch vụ của SmartWash. Dưới đây là thông tin lịch hẹn của bạn:</p>
+                            
+                            <table style='width: 100%; border-collapse: collapse; margin-top: 15px;'>
+                                <tr>
+                                    <td style='padding: 8px; border-bottom: 1px solid #eee;'><b>Mã lịch hẹn:</b></td>
+                                    <td style='padding: 8px; border-bottom: 1px solid #eee;'>#{booking.BookingId}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px; border-bottom: 1px solid #eee;'><b>Biển số xe:</b></td>
+                                    <td style='padding: 8px; border-bottom: 1px solid #eee;'>{booking.LicensePlate}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px; border-bottom: 1px solid #eee;'><b>Dịch vụ:</b></td>
+                                    <td style='padding: 8px; border-bottom: 1px solid #eee;'>{service.ServiceName}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px; border-bottom: 1px solid #eee;'><b>Thời gian:</b></td>
+                                    <td style='padding: 8px; border-bottom: 1px solid #eee; color: red;'><b>{targetDateTime:dd/MM/yyyy HH:mm}</b></td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 8px; border-bottom: 1px solid #eee;'><b>Đã thanh toán (Cọc):</b></td>
+                                    <td style='padding: 8px; border-bottom: 1px solid #eee; color: green;'><b>{finalAmount:N0} đ</b></td>
+                                </tr>
+                            </table>
+
+                            <p style='margin-top: 20px;'>Vui lòng đến trạm đúng giờ. Nếu bạn đến trễ quá 15 phút, hệ thống sẽ tự động hủy lịch (hoặc xếp vào hàng chờ).</p>
+                            <p>Trân trọng,<br><b>Đội ngũ SmartWash</b></p>
+                        </div>";
+
+                        await _emailService.SendEmailAsync(user.Email, subject, htmlMessage);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Lỗi gửi mail]: {ex.Message}");
+                }
                 return new BookingResponseDTO
                 {
                     BookingId = booking.BookingId,
