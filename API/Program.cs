@@ -1,4 +1,4 @@
-﻿using AutoWashPro.BLL.Services;
+using AutoWashPro.BLL.Services;
 using AutoWashPro.DAL.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +7,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Text;
+using PayOS;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,18 @@ builder.Services.AddControllers()
             });
         };
     });
+
+// Configure PayOS
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    return new PayOSClient(
+        config["PayOS:ClientId"] ?? "",
+        config["PayOS:ApiKey"] ?? "",
+        config["PayOS:ChecksumKey"] ?? ""
+    );
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -88,6 +101,8 @@ builder.Services.AddScoped<IVehicleService, AutoWashPro.BLL.Services.VehicleServ
 builder.Services.AddScoped<IVehicleTypeService, AutoWashPro.BLL.Services.VehicleTypeService>();
 builder.Services.AddScoped<IServiceService, AutoWashPro.BLL.Services.ServiceService>();
 builder.Services.AddScoped<IBookingService, AutoWashPro.BLL.Services.BookingService>();
+builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.AddScoped<IVoucherService, VoucherService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
@@ -106,6 +121,9 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AutoWashDbContext>();
+    
+    // Auto migration
+    context.Database.Migrate();
 
     if (!context.Users.Any(u => u.Role == "Admin"))
     {
