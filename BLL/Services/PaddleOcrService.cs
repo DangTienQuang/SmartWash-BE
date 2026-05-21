@@ -36,52 +36,28 @@ namespace BLL.Services
         }
 
         public async Task<string> ExtractTextAsync(
-            byte[] imageBytes,
-            string plateType = "SHORT")
+    byte[] imageBytes,
+    string plateType = "SHORT")
         {
             return await Task.Run(() =>
             {
                 try
                 {
-                    // Step 1 — Upscale plate
-                    var upscaled = UpscalePlate(imageBytes);
-
-                    // Step 2 — Detect text regions
-                    var regions = DetectTextRegions(upscaled);
                     _logger.LogInformation(
-                        "Detected {Count} text regions", regions.Count);
+                        "ExtractTextAsync — plateType: {Type}", plateType);
 
-                    if (!regions.Any())
+                    if (plateType == "LONG")
                     {
-                        _logger.LogWarning("No text regions found");
-                        return string.Empty;
-                    }
-
-                    // Step 3 — Sort top→bottom, left→right
-                    var sorted = regions
-                        .OrderBy(r => r.Top)
-                        .ThenBy(r => r.Left)
-                        .ToList();
-
-                    // Step 4 — Recognize each region
-                    var parts = new List<string>();
-                    foreach (var region in sorted)
-                    {
-                        var crop = CropRegion(upscaled, region);
-                        var text = RecognizeText(crop);
+                        var upscaled = UpscalePlate(imageBytes);
+                        var text = RecognizeText(upscaled);
                         _logger.LogInformation(
-                            "Region [{L},{T},{R},{B}] → '{Text}'",
-                            region.Left, region.Top,
-                            region.Right, region.Bottom,
-                            text);
-
-                        if (!string.IsNullOrEmpty(text))
-                            parts.Add(text);
+                            "LONG plate result: '{Text}'", text);
+                        return text.ToUpper();
                     }
-
-                    var final = string.Join("", parts).ToUpper();
-                    _logger.LogInformation("Final plate text: '{Text}'", final);
-                    return final;
+                    else
+                    {
+                        return ReadTwoLinePlate(imageBytes);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -340,6 +316,54 @@ namespace BLL.Services
             }
 
             return sb.ToString();
+        }
+
+        private string ReadTwoLinePlate(byte[] imageBytes)
+        {
+            var upscaledBytes = UpscalePlate(imageBytes);
+            using var upscaled = SKBitmap.Decode(upscaledBytes);
+
+            int W = upscaled.Width;
+            int H = upscaled.Height;
+            int splitY = H / 2; // fixed 50% — confirmed working in Python
+
+            _logger.LogInformation(
+                "Splitting plate at Y={SplitY} of H={H}", splitY, H);
+
+            // Top half
+            using var topBmp = new SKBitmap(W, splitY);
+            upscaled.ExtractSubset(topBmp,
+                new SKRectI(0, 0, W, splitY));
+
+            // Bottom half
+            using var botBmp = new SKBitmap(W, H - splitY);
+            upscaled.ExtractSubset(botBmp,
+                new SKRectI(0, splitY, W, H));
+
+            byte[] ToBytes(SKBitmap bmp)
+            {
+                using var ms = new MemoryStream();
+                bmp.Encode(ms, SKEncodedImageFormat.Png, 100);
+                return ms.ToArray();
+            }
+
+            var topBytes = ToBytes(topBmp);
+            var botBytes = ToBytes(botBmp);
+
+            File.WriteAllBytes(Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                "debug_line1.png"), topBytes);
+            File.WriteAllBytes(Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                "debug_line2.png"), botBytes);
+
+            var topText = RecognizeText(topBytes);
+            var botText = RecognizeText(botBytes);
+
+            _logger.LogInformation("Line 1: '{T}'", topText);
+            _logger.LogInformation("Line 2: '{B}'", botText);
+
+            return (topText + botText).ToUpper();
         }
 
         // ── Crop region ───────────────────────────────────────────────────────

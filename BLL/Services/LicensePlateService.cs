@@ -246,29 +246,47 @@ namespace BLL.Services
         {
             using var bitmap = SKBitmap.Decode(imageBytes);
 
-            // Expand box by 8% on each side
-            float expandX = (box.X2 - box.X1) * 0.08f;
-            float expandY = (box.Y2 - box.Y1) * 0.08f;
+            _logger.LogInformation(
+                "Raw YOLO box — X1:{X1:F3} Y1:{Y1:F3} X2:{X2:F3} Y2:{Y2:F3}",
+                box.X1, box.Y1, box.X2, box.Y2);
 
-            int x = (int)((box.X1 - expandX) * bitmap.Width);
-            int y = (int)((box.Y1 - expandY) * bitmap.Height);
-            int w = (int)((box.X2 - box.X1 + expandX * 2) * bitmap.Width);
-            int h = (int)((box.Y2 - box.Y1 + expandY * 2) * bitmap.Height);
+            float bw = box.X2 - box.X1;
+            float bh = box.Y2 - box.Y1;
 
-            x = Math.Max(0, x);
-            y = Math.Max(0, y);
+            // Expand MORE on left side — YOLO consistently cuts left characters
+            float expandLeft = bw * 0.5f;
+            float expandRight = bw * 0.1f;
+            float expandTop = bh * 0.25f;
+            float expandBot = bh * 0.25f;
+
+            float x1 = Math.Max(0f, box.X1 - expandLeft);
+            float y1 = Math.Max(0f, box.Y1 - expandTop);
+            float x2 = Math.Min(1f, box.X2 + expandRight);
+            float y2 = Math.Min(1f, box.Y2 + expandBot);
+
+            int x = (int)(x1 * bitmap.Width);
+            int y = (int)(y1 * bitmap.Height);
+            int w = (int)((x2 - x1) * bitmap.Width);
+            int h = (int)((y2 - y1) * bitmap.Height);
+
             w = Math.Min(w, bitmap.Width - x);
             h = Math.Min(h, bitmap.Height - y);
 
             _logger.LogInformation(
-                "Cropping plate region: x={X} y={Y} w={W} h={H}", x, y, w, h);
+                "Expanded crop — x:{X} y:{Y} w:{W} h:{H}", x, y, w, h);
 
             using var cropped = new SKBitmap(w, h);
             bitmap.ExtractSubset(cropped, new SKRectI(x, y, x + w, y + h));
 
             using var ms = new MemoryStream();
             cropped.Encode(ms, SKEncodedImageFormat.Png, 100);
-            return ms.ToArray();
+            var bytes = ms.ToArray();
+
+            File.WriteAllBytes(Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                "debug_yolo_crop.png"), bytes);
+
+            return bytes;
         }
     }
 }
