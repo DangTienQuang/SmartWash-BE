@@ -98,10 +98,16 @@ namespace DAL.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
+                    b.Property<int>("PromotionPoint")
+                        .HasColumnType("int");
+
                     b.Property<int?>("ReferredById")
                         .HasColumnType("int");
 
                     b.Property<int>("TierId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalPoint")
                         .HasColumnType("int");
 
                     b.Property<int>("UserId")

@@ -154,10 +154,8 @@ namespace BLL.Services
                 // =========================
                 case AIIntent.CheckPoints:
                     {
-                        var totalPoints = await _context.PointLedgers
-                            .Where(x => x.UserId == userId)
-                            .SumAsync(x =>
-                                x.PointsAdded - x.PointsDeducted);
+                        var spendablePoints = profile?.TotalPoint ?? 0;
+                        var promotionPoints = profile?.PromotionPoint ?? 0;
 
                         try
                         {
@@ -179,8 +177,11 @@ namespace BLL.Services
                                 Xe:
                                 {vehicleText}
 
-                                Điểm hiện tại:
-                                {totalPoints}
+                                Điểm khả dụng (TotalPoint):
+                                {spendablePoints}
+
+                                Điểm thăng hạng (PromotionPoint):
+                                {promotionPoints}
 
                                 Hãy trả lời tự nhiên và thân thiện.
                                 """;
@@ -188,12 +189,12 @@ namespace BLL.Services
                             reply = await GenerateSafeReplyAsync(
                                 systemPrompt,
                                 userPrompt,
-                                $"Bạn hiện có {totalPoints} điểm tích lũy.");
+                                $"Bạn có {spendablePoints} điểm khả dụng và {promotionPoints} điểm thăng hạng.");
                         }
                         catch
                         {
                             reply =
-                                $"Bạn hiện có {totalPoints} điểm tích lũy.";
+                                $"Bạn có {spendablePoints} điểm khả dụng và {promotionPoints} điểm thăng hạng.";
                         }
 
                         break;
@@ -212,10 +213,7 @@ namespace BLL.Services
                             break;
                         }
 
-                        var totalPoints = await _context.PointLedgers
-                            .Where(x => x.UserId == userId)
-                            .SumAsync(x =>
-                                x.PointsAdded - x.PointsDeducted);
+                        var promotionPoints = profile.PromotionPoint;
 
                         var nextTier = await _context.Tiers
                             .Where(x =>
@@ -235,10 +233,10 @@ namespace BLL.Services
                         {
                             int needed =
                                 nextTier.MinAccumulatedPoints
-                                - totalPoints;
+                                - promotionPoints;
 
                             upgradeMessage =
-                                $"Bạn cần thêm {needed} điểm để lên hạng {nextTier.TierName}.";
+                                $"Bạn cần thêm {needed} điểm thăng hạng để lên {nextTier.TierName}.";
                         }
 
                         try
@@ -258,8 +256,8 @@ namespace BLL.Services
                                 Hạng hiện tại:
                                 {profile.Tier.TierName}
 
-                                Tổng điểm:
-                                {totalPoints}
+                                Điểm thăng hạng (PromotionPoint):
+                                {promotionPoints}
 
                                 Xe:
                                 {vehicleText}
@@ -458,10 +456,8 @@ namespace BLL.Services
                 .Where(x => x.UserId == userId)
                 .ToListAsync();
 
-            var totalPoints = await _context.PointLedgers
-                .Where(x => x.UserId == userId)
-                .SumAsync(x =>
-                    x.PointsAdded - x.PointsDeducted);
+            var spendablePoints = profile?.TotalPoint ?? 0;
+            var promotionPoints = profile?.PromotionPoint ?? 0;
 
             string recommendation;
 
@@ -523,8 +519,11 @@ namespace BLL.Services
                     Hạng:
                     {profile?.Tier?.TierName}
 
-                    Điểm:
-                    {totalPoints}
+                    Điểm khả dụng:
+                    {spendablePoints}
+
+                    Điểm thăng hạng:
+                    {promotionPoints}
 
                     Xe:
                     {vehicleText}

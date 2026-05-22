@@ -33,8 +33,6 @@ namespace AutoWashPro.DAL.Entities
         public DateTime? RefreshTokenExpiryTime { get; set; }
         public CustomerProfile CustomerProfile { get; set; } = null!;
         public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
-        public CustomerProfile CustomerProfile { get; set; }
-        public ICollection<Vehicle> Vehicles { get; set; }
         public ICollection<AIConversationLog> AIConversationLogs { get; set; }
     }
 }

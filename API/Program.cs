@@ -146,7 +146,6 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITierService, TierService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IVehicleService, AutoWashPro.BLL.Services.VehicleService>();
 builder.Services.AddScoped<IVehicleTypeService, AutoWashPro.BLL.Services.VehicleTypeService>();
 builder.Services.AddScoped<IServiceService, AutoWashPro.BLL.Services.ServiceService>();
@@ -181,6 +180,8 @@ using (var scope = app.Services.CreateScope())
     // Auto migration
     context.Database.Migrate();
 
+    SyncCustomerProfilePoints(context);
+
     if (!context.Users.Any(u => u.Role == "Admin"))
     {
         var admin = new AutoWashPro.DAL.Entities.User
@@ -210,7 +211,9 @@ using (var scope = app.Services.CreateScope())
             UserId = admin.UserId,
             FullName = "System Admin",
             TierId = firstTier.TierId,
-            ChurnScore = 0
+            ChurnScore = 0,
+            TotalPoint = 0,
+            PromotionPoint = 0
         });
 
         context.SaveChanges();
@@ -218,3 +221,31 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+static void SyncCustomerProfilePoints(AutoWashDbContext context)
+{
+    const string completionPrefix = "Hoàn thành dịch vụ";
+    var now = DateTime.UtcNow;
+
+    foreach (var profile in context.CustomerProfiles.ToList())
+    {
+        var ledgers = context.PointLedgers.Where(p => p.UserId == profile.UserId).ToList();
+        if (!ledgers.Any()) continue;
+
+        var totalAdded = ledgers
+            .Where(p => p.PointsAdded > 0 && (p.ExpiryDate == null || p.ExpiryDate > now))
+            .Sum(p => p.PointsAdded);
+        var totalDeducted = ledgers.Where(p => p.PointsDeducted > 0).Sum(p => p.PointsDeducted);
+        var promotionFromLedger = ledgers
+            .Where(p => p.PointsAdded > 0 && p.Reason.StartsWith(completionPrefix))
+            .Sum(p => p.PointsAdded);
+
+        if (profile.TotalPoint == 0 && profile.PromotionPoint == 0)
+        {
+            profile.TotalPoint = Math.Max(0, totalAdded - totalDeducted);
+            profile.PromotionPoint = promotionFromLedger;
+        }
+    }
+
+    context.SaveChanges();
+}
