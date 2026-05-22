@@ -25,28 +25,67 @@ namespace API.Controllers
         public async Task<IActionResult> Chat(
             [FromBody] AIChatRequestDTO request)
         {
-            int userId =
-                ClaimHelper.GetUserId(User);
+            try
+            {
+                if (request == null || string.IsNullOrWhiteSpace(request.Message))
+                {
+                    return BadRequest(new
+                    {
+                        statusCode = 400,
+                        message = "Message is required."
+                    });
+                }
 
-            var result = await _aiService
-                .ChatAsync(userId, request);
+                int userId = ClaimHelper.GetUserId(User);
 
-            return Ok(result);
+                var result = await _aiService
+                    .ChatAsync(userId, request);
+
+                return Ok(new
+                {
+                    statusCode = 200,
+                    message = "Success",
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    statusCode = 400,
+                    message = ex.Message
+                });
+            }
         }
 
         [HttpGet("recommendation")]
         public async Task<IActionResult> Recommendation()
         {
-            int userId =
-                ClaimHelper.GetUserId(User);
-
-            var result = await _aiService
-                .GetRecommendationAsync(userId);
-
-            return Ok(new
+            try
             {
-                recommendation = result
-            });
+                int userId = ClaimHelper.GetUserId(User);
+
+                var result = await _aiService
+                    .GetRecommendationAsync(userId);
+
+                return Ok(new
+                {
+                    statusCode = 200,
+                    message = "Success",
+                    data = new
+                    {
+                        recommendation = result
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    statusCode = 400,
+                    message = ex.Message
+                });
+            }
         }
     }
 }
