@@ -438,6 +438,69 @@ namespace DAL.Migrations
                     b.ToTable("Wallets");
                 });
 
+            modelBuilder.Entity("DAL.Entities.AIConversationLog", b =>
+                {
+                    b.Property<int>("ConversationLogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Blocked")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<string>("Response")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ConversationLogId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AIConversationLogs");
+                });
+
+            modelBuilder.Entity("DAL.Entities.AIKnowledgeBase", b =>
+                {
+                    b.Property<int>("KnowledgeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("KnowledgeId");
+
+                    b.ToTable("AIKnowledgeBases");
+                });
+
             modelBuilder.Entity("AutoWashPro.DAL.Entities.Booking", b =>
                 {
                     b.HasOne("AutoWashPro.DAL.Entities.Service", "Service")
@@ -562,6 +625,17 @@ namespace DAL.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("DAL.Entities.AIConversationLog", b =>
+                {
+                    b.HasOne("AutoWashPro.DAL.Entities.User", "User")
+                        .WithMany("AIConversationLogs")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("AutoWashPro.DAL.Entities.Service", b =>
                 {
                     b.Navigation("Bookings");
@@ -576,6 +650,8 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("AutoWashPro.DAL.Entities.User", b =>
                 {
+                    b.Navigation("AIConversationLogs");
+
                     b.Navigation("CustomerProfile")
                         .IsRequired();
 
