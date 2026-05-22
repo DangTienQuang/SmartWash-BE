@@ -10,10 +10,21 @@ namespace BLL.Services
     {
         private readonly OnnxInferenceEngine _engine;
         private readonly PaddleOcrService _ocr;
+        private readonly ILogger<LicensePlateService> _logger;
+
         private const float ConfidenceThreshold = 0.5f;
         private const float IouThreshold = 0.45f;
         private const int ModelInputSize = 640;
-        private readonly ILogger<LicensePlateService> _logger;
+        //LONG Plate
+        private const float FrontExpandLeft = 0.5f;
+        private const float FrontExpandRight = 0.3f;
+        private const float FrontExpandTop = 0.05f;
+        private const float FrontExpandBot = 0.05f;
+        //Short Plate
+        private const float BackExpandLeft = 0.6f;
+        private const float BackExpandRight = 0.1f;
+        private const float BackExpandTop = 0.15f;
+        private const float BackExpandBot = 0.25f;
 
         public LicensePlateService(OnnxInferenceEngine engine, PaddleOcrService ocr, ILogger<LicensePlateService> logger)
         {
@@ -23,9 +34,7 @@ namespace BLL.Services
         }
 
         // ─── Dual Camera Entry Point ────────────────────────────────────────
-        public async Task<DualPlateResult> DetectDualPlateAsync(
-            byte[]? frontImageBytes,
-            byte[]? backImageBytes)
+        public async Task<DualPlateResult> DetectDualPlateAsync(byte[]? frontImageBytes, byte[]? backImageBytes)
         {
             // Run both cameras in parallel
             var frontTask = frontImageBytes != null
@@ -45,9 +54,7 @@ namespace BLL.Services
         }
 
         // ─── Single Camera Detection ────────────────────────────────────────
-        private async Task<SinglePlateResult?> DetectSingleAsync(
-            byte[] imageBytes,
-            PlatePosition position)
+        private async Task<SinglePlateResult?> DetectSingleAsync(byte[] imageBytes, PlatePosition position)
         {
             var boxes = GetFilteredBoxes(imageBytes);
             if (!boxes.Any())
@@ -58,9 +65,9 @@ namespace BLL.Services
                 };
 
             var bestBox = boxes.OrderByDescending(b => b.Confidence).First();
-            var cropped = CropRegion(imageBytes, bestBox);
-            var plateType = DetectPlateType(cropped);
-            var plateText = await _ocr.ExtractTextAsync(cropped, plateType);
+            var cropped = CropRegion(imageBytes, bestBox, position);
+            var plateType = DetectPlateType(cropped, position);
+            var plateText = await _ocr.ExtractTextAsync(cropped, plateType, position.ToString());
 
             return new SinglePlateResult
             {
@@ -73,18 +80,35 @@ namespace BLL.Services
         }
 
         // ─── Plate Type Detection ───────────────────────────────────────────
-        private string DetectPlateType(byte[] croppedBytes)
+        private string DetectPlateType(byte[] croppedBytes, PlatePosition position = PlatePosition.Back)
         {
+            // Note: Front camera always shoots LONG plate
+            // Back camera always shoots SHORT plate
+            // For special cars with 2 LONG plates, both cameras get LONG
+            // — handle via ratio as fallback
+
             using var bitmap = SKBitmap.Decode(croppedBytes);
             float ratio = (float)bitmap.Width / bitmap.Height;
 
-            return ratio >= 3.0f ? "LONG" : "SHORT";
+            _logger.LogInformation(
+                "[{Pos}] Plate ratio: {Ratio:F2} ({W}x{H})",
+                position, ratio, bitmap.Width, bitmap.Height);
+
+            // Use position as primary signal
+            if (position == PlatePosition.Front)
+            {
+                _logger.LogInformation("[Front] → LONG (camera position rule)");
+                return "LONG";
+            }
+
+            // Back — use ratio to distinguish SHORT vs LONG
+            var type = ratio >= 3.5f ? "LONG" : "SHORT";
+            _logger.LogInformation("[Back] ratio={R:F2} → {T}", ratio, type);
+            return type;
         }
 
         // ─── Reconcile Front + Back Results ────────────────────────────────
-        private DualPlateResult ReconcileResults(
-            SinglePlateResult? front,
-            SinglePlateResult? back)
+        private DualPlateResult ReconcileResults(SinglePlateResult? front, SinglePlateResult? back)
         {
             bool frontOk = front?.Detected == true
                            && !string.IsNullOrEmpty(front.PlateText);
@@ -154,11 +178,9 @@ namespace BLL.Services
             };
         }
 
-        private string Normalize(string plateText)
-            => new string(plateText
-                .ToUpper()
-                .Where(char.IsLetterOrDigit)
-                .ToArray());
+        private string Normalize(string plateText) => new string(plateText.ToUpper()
+                                                                          .Where(char.IsLetterOrDigit)
+                                                                          .ToArray());
 
         // ─── Existing Single Image API (unchanged) ──────────────────────────
         public async Task<LicensePlateResult> DetectPlateAsync(byte[] imageBytes)
@@ -168,9 +190,9 @@ namespace BLL.Services
                 return new LicensePlateResult { Detected = false };
 
             var bestBox = boxes.OrderByDescending(b => b.Confidence).First();
-            var cropped = CropRegion(imageBytes, bestBox);
-            var plateType = DetectPlateType(cropped);
-            var plateText = await _ocr.ExtractTextAsync(cropped, plateType);
+            var cropped = CropRegion(imageBytes, bestBox, PlatePosition.Back);
+            var plateType = DetectPlateType(cropped, PlatePosition.Back);
+            var plateText = await _ocr.ExtractTextAsync(cropped, plateType, "Single");
 
             return new LicensePlateResult
             {
@@ -216,8 +238,7 @@ namespace BLL.Services
             return boxes;
         }
 
-        private List<DetectionBox> ApplyNMS(
-            List<DetectionBox> boxes, float iouThreshold)
+        private List<DetectionBox> ApplyNMS(List<DetectionBox> boxes, float iouThreshold)
         {
             var sorted = boxes.OrderByDescending(b => b.Confidence).ToList();
             var kept = new List<DetectionBox>();
@@ -242,22 +263,33 @@ namespace BLL.Services
             return inter / (areaA + areaB - inter);
         }
 
-        private byte[] CropRegion(byte[] imageBytes, DetectionBox box)
+        private byte[] CropRegion(byte[] imageBytes, DetectionBox box, PlatePosition position = PlatePosition.Back)
         {
             using var bitmap = SKBitmap.Decode(imageBytes);
 
             _logger.LogInformation(
-                "Raw YOLO box — X1:{X1:F3} Y1:{Y1:F3} X2:{X2:F3} Y2:{Y2:F3}",
-                box.X1, box.Y1, box.X2, box.Y2);
+                "[{Pos}] Raw YOLO box — X1:{X1:F3} Y1:{Y1:F3} X2:{X2:F3} Y2:{Y2:F3}",
+                position, box.X1, box.Y1, box.X2, box.Y2);
 
             float bw = box.X2 - box.X1;
             float bh = box.Y2 - box.Y1;
 
-            // Expand MORE on left side — YOLO consistently cuts left characters
-            float expandLeft = bw * 0.5f;
-            float expandRight = bw * 0.1f;
-            float expandTop = bh * 0.25f;
-            float expandBot = bh * 0.25f;
+            float expandLeft, expandRight, expandTop, expandBot;
+
+            if (position == PlatePosition.Front)
+            {
+                expandLeft = bw * FrontExpandLeft;
+                expandRight = bw * FrontExpandRight;
+                expandTop = bh * FrontExpandTop;
+                expandBot = bh * FrontExpandBot;
+            }
+            else
+            {
+                expandLeft = bw * BackExpandLeft;
+                expandRight = bw * BackExpandRight;
+                expandTop = bh * BackExpandTop;
+                expandBot = bh * BackExpandBot;
+            }
 
             float x1 = Math.Max(0f, box.X1 - expandLeft);
             float y1 = Math.Max(0f, box.Y1 - expandTop);
@@ -273,7 +305,8 @@ namespace BLL.Services
             h = Math.Min(h, bitmap.Height - y);
 
             _logger.LogInformation(
-                "Expanded crop — x:{X} y:{Y} w:{W} h:{H}", x, y, w, h);
+                "[{Pos}] Expanded crop — x:{X} y:{Y} w:{W} h:{H}",
+                position, x, y, w, h);
 
             using var cropped = new SKBitmap(w, h);
             bitmap.ExtractSubset(cropped, new SKRectI(x, y, x + w, y + h));
@@ -284,7 +317,7 @@ namespace BLL.Services
 
             File.WriteAllBytes(Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory,
-                "debug_yolo_crop.png"), bytes);
+                $"debug_yolo_crop_{position}.png"), bytes);
 
             return bytes;
         }

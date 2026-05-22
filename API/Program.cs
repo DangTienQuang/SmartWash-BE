@@ -104,9 +104,12 @@ var dictPath = Path.Combine(
 
 builder.Services.AddSingleton<PaddleOcrService>(sp =>
 {
+    var recModelPath = Path.Combine(
+        AppDomain.CurrentDomain.BaseDirectory, "Models/rec_model.onnx");
+    var dictPath = Path.Combine(
+        AppDomain.CurrentDomain.BaseDirectory, "Models/dict.txt");
     var logger = sp.GetRequiredService<ILogger<PaddleOcrService>>();
-    return new PaddleOcrService(
-        detModelPath, recModelPath, dictPath, logger);
+    return new PaddleOcrService(recModelPath, dictPath, logger);
 });
 
 builder.Services.AddRateLimiter(options =>
