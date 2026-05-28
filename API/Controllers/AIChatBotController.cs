@@ -1,5 +1,4 @@
-﻿using AutoWashPro.BLL.Exceptions;
-using BLL.DTOs;
+﻿using BLL.DTOs;
 using BLL.Helpers;
 using BLL.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -16,40 +15,77 @@ namespace API.Controllers
     {
         private readonly IAIChatbotService _aiService;
 
-        public AIChatbotController(IAIChatbotService aiService)
+        public AIChatbotController(
+            IAIChatbotService aiService)
         {
             _aiService = aiService;
         }
 
         [HttpPost("chat")]
-        public async Task<IActionResult> Chat([FromBody] AIChatRequestDTO request)
+        public async Task<IActionResult> Chat(
+            [FromBody] AIChatRequestDTO request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Message))
-                throw new BadRequestException("Message is required.");
-
-            int userId = ClaimHelper.GetUserId(User);
-            var result = await _aiService.ChatAsync(userId, request);
-
-            return Ok(new
+            try
             {
-                statusCode = 200,
-                message = "Success",
-                data = result
-            });
+                if (request == null || string.IsNullOrWhiteSpace(request.Message))
+                {
+                    return BadRequest(new
+                    {
+                        statusCode = 400,
+                        message = "Message is required."
+                    });
+                }
+
+                int userId = ClaimHelper.GetUserId(User);
+
+                var result = await _aiService
+                    .ChatAsync(userId, request);
+
+                return Ok(new
+                {
+                    statusCode = 200,
+                    message = "Success",
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    statusCode = 400,
+                    message = ex.Message
+                });
+            }
         }
 
         [HttpGet("recommendation")]
         public async Task<IActionResult> Recommendation()
         {
-            int userId = ClaimHelper.GetUserId(User);
-            var result = await _aiService.GetRecommendationAsync(userId);
-
-            return Ok(new
+            try
             {
-                statusCode = 200,
-                message = "Success",
-                data = new { recommendation = result }
-            });
+                int userId = ClaimHelper.GetUserId(User);
+
+                var result = await _aiService
+                    .GetRecommendationAsync(userId);
+
+                return Ok(new
+                {
+                    statusCode = 200,
+                    message = "Success",
+                    data = new
+                    {
+                        recommendation = result
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    statusCode = 400,
+                    message = ex.Message
+                });
+            }
         }
     }
 }
