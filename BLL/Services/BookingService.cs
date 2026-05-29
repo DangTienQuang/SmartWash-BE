@@ -177,10 +177,6 @@ namespace AutoWashPro.BLL.Services
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException("Giỏ hàng không có xe nào.");
 
             var userProfile = await _context.CustomerProfiles.FirstOrDefaultAsync(cp => cp.UserId == userId);
-            if (userProfile != null && userProfile.TrustScore < 50)
-            {
-                throw new AutoWashPro.BLL.Exceptions.BadRequestException("Điểm uy tín của bạn quá thấp (dưới 50). Không thể đặt lịch. Vui lòng liên hệ Admin.");
-            }
 
             var duplicatePlates = request.Vehicles.GroupBy(v => v.LicensePlate).Where(g => g.Count() > 1).Any();
             if (duplicatePlates)
@@ -189,6 +185,23 @@ namespace AutoWashPro.BLL.Services
             var slot = await _context.TimeSlots.FindAsync(request.SlotId);
             if (slot == null)
                 throw new AutoWashPro.BLL.Exceptions.NotFoundException("Khung giờ không hợp lệ.");
+
+            // 1. Kiểm tra Khung giờ VIP
+            if (slot.IsVipOnly)
+            {
+                var profile = await _context.CustomerProfiles
+                    .Include(p => p.Tier)
+                    .FirstOrDefaultAsync(p => p.UserId == userId);
+
+                if (profile == null || profile.Tier == null)
+                    throw new AutoWashPro.BLL.Exceptions.BadRequestException("Không tìm thấy thông tin hạng thành viên.");
+
+                string tierName = profile.Tier.TierName.ToLower();
+                if (tierName != "gold" && tierName != "platinum")
+                {
+                    throw new AutoWashPro.BLL.Exceptions.BadRequestException("Khung giờ này là đặc quyền chỉ dành riêng cho thành viên Gold và Platinum.");
+                }
+            }
 
             var targetDateTime = request.ScheduledDate.Date.Add(slot.StartTime);
             if (targetDateTime < DateTime.UtcNow)
@@ -466,13 +479,6 @@ namespace AutoWashPro.BLL.Services
                 {
                     // Late cancellation penalty
                     var userProfile = await _context.CustomerProfiles.FirstOrDefaultAsync(cp => cp.UserId == userId);
-                    if (userProfile != null)
-                    {
-                        int penalty = 10;
-                        userProfile.TrustScore -= penalty;
-                        if (userProfile.TrustScore < 0) userProfile.TrustScore = 0;
-                        booking.TrustScorePenalty = penalty;
-                    }
                 }
 
                 booking.UpdatedAt = DateTime.UtcNow;
@@ -557,38 +563,26 @@ namespace AutoWashPro.BLL.Services
                 var detail = booking.BookingDetails.FirstOrDefault(d => d.DetailId == request.DetailId);
                 if (detail == null) throw new AutoWashPro.BLL.Exceptions.NotFoundException("Không tìm thấy thông tin xe trong lịch hẹn này.");
 
-                // Calculate old penalty before modifying state
-                int oldPenalty = 0;
-                if (detail.VehicleCondition == VehicleCondition.Dirty) oldPenalty += 5;
-                else if (detail.VehicleCondition == VehicleCondition.VeryDirty) oldPenalty += 10;
-                if (detail.ActualVehicleTypeId.HasValue) oldPenalty += 10;
-
                 detail.VehicleCondition = request.Condition;
 
                 decimal newSurcharge = 0;
-                int newPenalty = 0;
 
                 if (request.Condition == VehicleCondition.Dirty)
                 {
                     newSurcharge += detail.Price * 0.2m; // 20% Upsell
-                    newPenalty += 5;
                 }
                 else if (request.Condition == VehicleCondition.VeryDirty)
                 {
                     newSurcharge += detail.Price * 0.5m; // 50% Upsell
-                    newPenalty += 10;
                 }
 
                 if (request.ActualVehicleTypeId.HasValue)
                 {
                     detail.ActualVehicleTypeId = request.ActualVehicleTypeId.Value;
                     // In a real scenario, we might look up the price difference between booked VehicleType and ActualVehicleType.
-                    // For now, we apply a flat mismatch surcharge (e.g., 30% of base price) and additional penalty if wrong vehicle type.
+                    // For now, we apply a flat mismatch surcharge (e.g., 30% of base price)
                     newSurcharge += detail.Price * 0.3m;
-                    newPenalty += 10;
                 }
-
-                int penaltyDiff = newPenalty - oldPenalty;
 
                 decimal surchargeDiff = newSurcharge - detail.MismatchSurcharge;
                 detail.MismatchSurcharge = newSurcharge;
@@ -639,19 +633,6 @@ namespace AutoWashPro.BLL.Services
                     }
                 }
 
-                if (penaltyDiff != 0 && booking.UserId.HasValue)
-                {
-                    var userProfile = await _context.CustomerProfiles.FirstOrDefaultAsync(cp => cp.UserId == booking.UserId.Value);
-                    if (userProfile != null)
-                    {
-                        userProfile.TrustScore -= penaltyDiff;
-                        if (userProfile.TrustScore < 0) userProfile.TrustScore = 0;
-                        // For simplicity, we just adjust the booking's tracked penalty
-                        booking.TrustScorePenalty += penaltyDiff;
-                        if (booking.TrustScorePenalty < 0) booking.TrustScorePenalty = 0;
-                    }
-                }
-
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;
@@ -661,6 +642,52 @@ namespace AutoWashPro.BLL.Services
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        public async Task MarkAsNoShowAsync(int bookingId)
+        {
+            var booking = await _context.Bookings.FindAsync(bookingId);
+            if (booking == null) throw new AutoWashPro.BLL.Exceptions.NotFoundException("Không tìm thấy Booking.");
+
+            booking.Status = "NoShow";
+            // GIỮ NGUYÊN TIỀN CỌC. TUYỆT ĐỐI KHÔNG GỌI HÀM HOÀN TIỀN (REFUND) Ở ĐÂY.
+
+            await _context.SaveChangesAsync();
+        }
+
+        private async Task<decimal> GetPriceFromDb(int serviceId, int vehicleTypeId, VehicleCondition condition)
+        {
+            var servicePrice = await _context.ServicePrices
+                .FirstOrDefaultAsync(sp => sp.ServiceId == serviceId && sp.VehicleTypeId == vehicleTypeId);
+
+            if (servicePrice == null) return 0;
+
+            decimal price = servicePrice.Price;
+            if (condition == VehicleCondition.VeryDirty)
+                price *= 1.2m;
+
+            return price;
+        }
+
+        public async Task ReportMismatchAsync(int detailId, VehicleCondition condition, int actualTypeId)
+        {
+            var detail = await _context.BookingDetails.FindAsync(detailId);
+            if (detail == null) throw new AutoWashPro.BLL.Exceptions.NotFoundException("Không tìm thấy chi tiết xe.");
+
+            detail.VehicleCondition = condition;
+            detail.ActualVehicleTypeId = actualTypeId;
+
+            decimal newPrice = await GetPriceFromDb(detail.ServiceId, actualTypeId, condition);
+
+            if (newPrice > detail.Price)
+            {
+                detail.MismatchSurcharge = newPrice - detail.Price;
+
+                // Mock Push Notification
+                Console.WriteLine($"[PUSH] Thông báo tới User: Phát sinh phụ phí {detail.MismatchSurcharge} VNĐ do sai lệch loại xe/độ bẩn.");
+            }
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task<BookingResponseDTO> CreateWalkInBookingAsync(int staffId, CreateWalkInBookingDTO request)
