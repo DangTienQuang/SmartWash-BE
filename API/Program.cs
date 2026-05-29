@@ -1,15 +1,16 @@
 using AutoWashPro.BLL.Services;
 using AutoWashPro.DAL.Data;
 using BLL.Services;
+using BLL.Services.Interface;
 using DAL.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using PayOS;
 using System.Linq;
 using System.Text;
-using PayOS;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -160,6 +161,9 @@ builder.Services.AddScoped<IAIModerationService, AIModerationService>();
 builder.Services.AddHttpClient<ILLMService, GeminiAIService>();
 builder.Services.AddScoped<IAIIntentService, AIIntentService>();
 builder.Services.AddScoped<ILicensePlateService, LicensePlateService>();
+builder.Services.AddScoped<IBusinessService, BusinessService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IBookingAttendanceService, BookingAttendanceService>();
 
 builder.Services.AddHostedService<AutoWashPro.API.Workers.AnnualTierResetWorker>();
 

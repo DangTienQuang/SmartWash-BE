@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DAL.Migrations
 {
     /// <inheritdoc />
-    public partial class Ten_Migration_Cua_Ban : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -201,41 +201,34 @@ namespace DAL.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "Bookings",
+                name: "BusinessProfiles",
                 columns: table => new
                 {
-                    BookingId = table.Column<int>(type: "int", nullable: false)
+                    BusinessProfileId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    UserId = table.Column<int>(type: "int", nullable: true),
-                    FallbackQrCode = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    CompanyName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    TrustScorePenalty = table.Column<int>(type: "int", nullable: false),
-                    ScheduledTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Status = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
+                    TaxCode = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    OriginalPrice = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
-                    PointsUsed = table.Column<int>(type: "int", nullable: false),
-                    PointDiscountAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
-                    AppliedVoucherId = table.Column<int>(type: "int", nullable: true),
-                    VoucherDiscountAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
-                    FinalAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    ServiceId = table.Column<int>(type: "int", nullable: true)
+                    BusinessAddress = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    BillingEmail = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    RepresentativeName = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    PaymentTermDays = table.Column<int>(type: "int", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Bookings", x => x.BookingId);
+                    table.PrimaryKey("PK_BusinessProfiles", x => x.BusinessProfileId);
                     table.ForeignKey(
-                        name: "FK_Bookings_Services_ServiceId",
-                        column: x => x.ServiceId,
-                        principalTable: "Services",
-                        principalColumn: "ServiceId");
-                    table.ForeignKey(
-                        name: "FK_Bookings_Users_UserId",
+                        name: "FK_BusinessProfiles_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
-                        principalColumn: "UserId");
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -256,7 +249,7 @@ namespace DAL.Migrations
                     ReferredById = table.Column<int>(type: "int", nullable: true),
                     TotalPoint = table.Column<int>(type: "int", nullable: false),
                     PromotionPoint = table.Column<int>(type: "int", nullable: false),
-                    TrustScore = table.Column<int>(type: "int", nullable: false),
+                    CurrentYearTierPoints = table.Column<int>(type: "int", nullable: false),
                     RowVersion = table.Column<DateTime>(type: "datetime(6)", rowVersion: true, nullable: true)
                 },
                 constraints: table =>
@@ -413,41 +406,49 @@ namespace DAL.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "BookingDetails",
+                name: "Bookings",
                 columns: table => new
                 {
-                    DetailId = table.Column<int>(type: "int", nullable: false)
+                    BookingId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    BookingId = table.Column<int>(type: "int", nullable: false),
-                    LicensePlate = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
+                    UserId = table.Column<int>(type: "int", nullable: true),
+                    FallbackQrCode = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    ServiceId = table.Column<int>(type: "int", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
-                    VehicleCondition = table.Column<int>(type: "int", nullable: false),
-                    ActualVehicleTypeId = table.Column<int>(type: "int", nullable: true),
-                    MismatchSurcharge = table.Column<decimal>(type: "decimal(65,30)", nullable: false)
+                    ScheduledTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Status = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    OriginalPrice = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    BusinessProfileId = table.Column<int>(type: "int", nullable: true),
+                    BookingType = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    PointsUsed = table.Column<int>(type: "int", nullable: false),
+                    PointDiscountAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    AppliedVoucherId = table.Column<int>(type: "int", nullable: true),
+                    VoucherDiscountAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    FinalAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    ServiceId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_BookingDetails", x => x.DetailId);
+                    table.PrimaryKey("PK_Bookings", x => x.BookingId);
                     table.ForeignKey(
-                        name: "FK_BookingDetails_Bookings_BookingId",
-                        column: x => x.BookingId,
-                        principalTable: "Bookings",
-                        principalColumn: "BookingId",
-                        onDelete: ReferentialAction.Cascade);
+                        name: "FK_Bookings_BusinessProfiles_BusinessProfileId",
+                        column: x => x.BusinessProfileId,
+                        principalTable: "BusinessProfiles",
+                        principalColumn: "BusinessProfileId",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_BookingDetails_Services_ServiceId",
+                        name: "FK_Bookings_Services_ServiceId",
                         column: x => x.ServiceId,
                         principalTable: "Services",
-                        principalColumn: "ServiceId",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "ServiceId");
                     table.ForeignKey(
-                        name: "FK_BookingDetails_VehicleTypes_ActualVehicleTypeId",
-                        column: x => x.ActualVehicleTypeId,
-                        principalTable: "VehicleTypes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        name: "FK_Bookings_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "UserId");
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -482,6 +483,160 @@ namespace DAL.Migrations
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
+            migrationBuilder.CreateTable(
+                name: "BookingDocuments",
+                columns: table => new
+                {
+                    BookingDocumentId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    BookingId = table.Column<int>(type: "int", nullable: false),
+                    DocumentType = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    FileUrl = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    GeneratedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BookingDocuments", x => x.BookingDocumentId);
+                    table.ForeignKey(
+                        name: "FK_BookingDocuments_Bookings_BookingId",
+                        column: x => x.BookingId,
+                        principalTable: "Bookings",
+                        principalColumn: "BookingId",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "Invoices",
+                columns: table => new
+                {
+                    InvoiceId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    InvoiceCode = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    BookingId = table.Column<int>(type: "int", nullable: false),
+                    BusinessProfileId = table.Column<int>(type: "int", nullable: true),
+                    InvoiceType = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Subtotal = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    TaxAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    TotalAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    Status = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    IssuedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Invoices", x => x.InvoiceId);
+                    table.ForeignKey(
+                        name: "FK_Invoices_Bookings_BookingId",
+                        column: x => x.BookingId,
+                        principalTable: "Bookings",
+                        principalColumn: "BookingId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Invoices_BusinessProfiles_BusinessProfileId",
+                        column: x => x.BusinessProfileId,
+                        principalTable: "BusinessProfiles",
+                        principalColumn: "BusinessProfileId");
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "BookingDetails",
+                columns: table => new
+                {
+                    DetailId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    BookingId = table.Column<int>(type: "int", nullable: false),
+                    LicensePlate = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ServiceId = table.Column<int>(type: "int", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    VehicleCondition = table.Column<int>(type: "int", nullable: false),
+                    ActualVehicleTypeId = table.Column<int>(type: "int", nullable: true),
+                    MismatchSurcharge = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    AttendanceStatus = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CheckInTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    CheckOutTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    DepositAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    DepositStatus = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ActualPrice = table.Column<decimal>(type: "decimal(65,30)", nullable: true),
+                    InvoiceId = table.Column<int>(type: "int", nullable: true),
+                    VehicleLicensePlate = table.Column<string>(type: "varchar(20)", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BookingDetails", x => x.DetailId);
+                    table.ForeignKey(
+                        name: "FK_BookingDetails_Bookings_BookingId",
+                        column: x => x.BookingId,
+                        principalTable: "Bookings",
+                        principalColumn: "BookingId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_BookingDetails_Invoices_InvoiceId",
+                        column: x => x.InvoiceId,
+                        principalTable: "Invoices",
+                        principalColumn: "InvoiceId");
+                    table.ForeignKey(
+                        name: "FK_BookingDetails_Services_ServiceId",
+                        column: x => x.ServiceId,
+                        principalTable: "Services",
+                        principalColumn: "ServiceId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_BookingDetails_VehicleTypes_ActualVehicleTypeId",
+                        column: x => x.ActualVehicleTypeId,
+                        principalTable: "VehicleTypes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_BookingDetails_Vehicles_VehicleLicensePlate",
+                        column: x => x.VehicleLicensePlate,
+                        principalTable: "Vehicles",
+                        principalColumn: "LicensePlate",
+                        onDelete: ReferentialAction.SetNull);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "InvoiceItems",
+                columns: table => new
+                {
+                    InvoiceItemId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    InvoiceId = table.Column<int>(type: "int", nullable: false),
+                    BookingDetailId = table.Column<int>(type: "int", nullable: false),
+                    Description = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Quantity = table.Column<int>(type: "int", nullable: false),
+                    UnitPrice = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(65,30)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InvoiceItems", x => x.InvoiceItemId);
+                    table.ForeignKey(
+                        name: "FK_InvoiceItems_BookingDetails_BookingDetailId",
+                        column: x => x.BookingDetailId,
+                        principalTable: "BookingDetails",
+                        principalColumn: "DetailId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InvoiceItems_Invoices_InvoiceId",
+                        column: x => x.InvoiceId,
+                        principalTable: "Invoices",
+                        principalColumn: "InvoiceId",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
             migrationBuilder.CreateIndex(
                 name: "IX_AIConversationLogs_UserId",
                 table: "AIConversationLogs",
@@ -498,9 +653,29 @@ namespace DAL.Migrations
                 column: "BookingId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_BookingDetails_InvoiceId",
+                table: "BookingDetails",
+                column: "InvoiceId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_BookingDetails_ServiceId",
                 table: "BookingDetails",
                 column: "ServiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BookingDetails_VehicleLicensePlate",
+                table: "BookingDetails",
+                column: "VehicleLicensePlate");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BookingDocuments_BookingId",
+                table: "BookingDocuments",
+                column: "BookingId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Bookings_BusinessProfileId",
+                table: "Bookings",
+                column: "BusinessProfileId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Bookings_ServiceId",
@@ -511,6 +686,12 @@ namespace DAL.Migrations
                 name: "IX_Bookings_UserId",
                 table: "Bookings",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BusinessProfiles_UserId",
+                table: "BusinessProfiles",
+                column: "UserId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_CustomerProfiles_TierId",
@@ -528,6 +709,26 @@ namespace DAL.Migrations
                 table: "DailySlotCapacities",
                 columns: new[] { "SlotId", "Date" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceItems_BookingDetailId",
+                table: "InvoiceItems",
+                column: "BookingDetailId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceItems_InvoiceId",
+                table: "InvoiceItems",
+                column: "InvoiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invoices_BookingId",
+                table: "Invoices",
+                column: "BookingId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invoices_BusinessProfileId",
+                table: "Invoices",
+                column: "BusinessProfileId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PointLedgers_UserId",
@@ -591,13 +792,16 @@ namespace DAL.Migrations
                 name: "AIKnowledgeBases");
 
             migrationBuilder.DropTable(
-                name: "BookingDetails");
+                name: "BookingDocuments");
 
             migrationBuilder.DropTable(
                 name: "CustomerProfiles");
 
             migrationBuilder.DropTable(
                 name: "DailySlotCapacities");
+
+            migrationBuilder.DropTable(
+                name: "InvoiceItems");
 
             migrationBuilder.DropTable(
                 name: "PointLedgers");
@@ -612,16 +816,13 @@ namespace DAL.Migrations
                 name: "UserVouchers");
 
             migrationBuilder.DropTable(
-                name: "Vehicles");
-
-            migrationBuilder.DropTable(
-                name: "Bookings");
-
-            migrationBuilder.DropTable(
                 name: "Tiers");
 
             migrationBuilder.DropTable(
                 name: "TimeSlots");
+
+            migrationBuilder.DropTable(
+                name: "BookingDetails");
 
             migrationBuilder.DropTable(
                 name: "Wallets");
@@ -630,7 +831,19 @@ namespace DAL.Migrations
                 name: "Vouchers");
 
             migrationBuilder.DropTable(
+                name: "Invoices");
+
+            migrationBuilder.DropTable(
+                name: "Vehicles");
+
+            migrationBuilder.DropTable(
+                name: "Bookings");
+
+            migrationBuilder.DropTable(
                 name: "VehicleTypes");
+
+            migrationBuilder.DropTable(
+                name: "BusinessProfiles");
 
             migrationBuilder.DropTable(
                 name: "Services");
