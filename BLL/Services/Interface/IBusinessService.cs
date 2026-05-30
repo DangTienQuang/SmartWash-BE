@@ -9,10 +9,13 @@ namespace BLL.Services.Interface
 {
     public interface IBusinessService
     {
-        Task<BusinessProfileResponseDTO> CreateBusinessProfileAsync(int userId, CreateBusinessProfileDTO dto);
+        Task<BusinessProfileResponseDTO> CreateBusinessProfileAsync(int userId, CreateBusinessProfileRequest request);
 
         Task<BusinessProfileResponseDTO?> GetByUserIdAsync(int userId);
-        Task<List<BusinessBookingResponseDTO>>GetBusinessBookingsAsync(int userId);
+        Task<List<BusinessBookingResponseDTO>> GetBusinessBookingsAsync(int userId);
         Task<int> CreateBusinessBookingAsync(int userId, CreateBusinessBookingDTO dto);
+        Task ReviewBusinessProfileAsync(int reviewerId, ReviewBusinessProfileDTO dto);
+        Task<List<PendingBusinessApplicationDTO>> GetPendingBusinessApplicationsAsync();
+        Task<PendingBusinessApplicationDTO?> GetBusinessApplicationDetailAsync(int businessProfileId);
     }
 }

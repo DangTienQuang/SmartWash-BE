@@ -29,6 +29,17 @@ namespace DAL.Entities
         public int? PaymentTermDays { get; set; }
 
         public DateTime CreatedAt { get; set; }
+        public string ApprovalStatus { get; set; } = "Pending";
+
+        public string? RejectionReason { get; set; }
+
+        public int? ReviewedByUserId { get; set; }
+
+        public DateTime? ReviewedAt { get; set; }
+
+        public string BusinessLicenseFileUrl { get; set; } = null!;
+
+        public string? AuthorizationLetterFileUrl { get; set; }
 
         public User User { get; set; } = null!;
     }

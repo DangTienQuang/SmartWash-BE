@@ -3,6 +3,7 @@ using System;
 using AutoWashPro.DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(AutoWashDbContext))]
-    partial class AutoWashDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260530023349_AddBusinessApproval")]
+    partial class AddBusinessApproval
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -678,17 +681,10 @@ namespace DAL.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<string>("AuthorizationLetterFileUrl")
-                        .HasColumnType("longtext");
-
                     b.Property<string>("BillingEmail")
                         .HasColumnType("longtext");
 
                     b.Property<string>("BusinessAddress")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("BusinessLicenseFileUrl")
-                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<string>("CompanyName")
