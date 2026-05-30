@@ -27,7 +27,8 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(new
             {
                 statusCode = 400,
-                message = errorMessage ?? "Dữ liệu đầu vào không hợp lệ."
+                message = errorMessage ?? "Dữ liệu đầu vào không hợp lệ.",
+                details = (string?)null
             });
         };
     });
@@ -153,11 +154,14 @@ builder.Services.AddScoped<IBookingService, AutoWashPro.BLL.Services.BookingServ
 builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IVoucherService, VoucherService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();
 builder.Services.AddScoped<IAIChatbotService,AIChatbotService>();
 builder.Services.AddScoped<IAIModerationService, AIModerationService>();
 builder.Services.AddHttpClient<ILLMService, GeminiAIService>();
 builder.Services.AddScoped<IAIIntentService, AIIntentService>();
 builder.Services.AddScoped<ILicensePlateService, LicensePlateService>();
+
+builder.Services.AddHostedService<AutoWashPro.API.Workers.AnnualTierResetWorker>();
 
 var app = builder.Build();
 app.UseMiddleware<AutoWashPro.API.Middlewares.ExceptionMiddleware>();

@@ -12,19 +12,38 @@ namespace AutoWashPro.BLL.DTOs
         public string? Reason { get; set; }
     }
 
-    public class CreateBookingDTO
+    public class VehicleBookingItemDTO
     {
-        [Required(ErrorMessage = "Vui lòng chọn xe.")]
+        [Required]
+        [MaxLength(20)]
         public required string LicensePlate { get; set; }
 
         [Required]
         public int ServiceId { get; set; }
+    }
+
+    public class CreateBookingDTO
+    {
+        [Required(ErrorMessage = "Vui lòng chọn ít nhất 1 xe.")]
+        public required List<VehicleBookingItemDTO> Vehicles { get; set; }
 
         [Required]
         public DateTime ScheduledDate { get; set; }
 
         [Required]
         public int SlotId { get; set; }
+
+        public int PointsToUse { get; set; } = 0;
+
+        public int? VoucherId { get; set; }
+    }
+
+    public class CreateWalkInBookingDTO
+    {
+        [Required(ErrorMessage = "Vui lòng chọn ít nhất 1 xe.")]
+        public required List<VehicleBookingItemDTO> Vehicles { get; set; }
+
+        public int UserId { get; set; } // Walk-ins might have user ID provided by Staff
 
         public int PointsToUse { get; set; } = 0;
 
@@ -42,5 +61,29 @@ namespace AutoWashPro.BLL.DTOs
         public decimal PointDiscountAmount { get; set; }
         public decimal VoucherDiscountAmount { get; set; }
         public decimal FinalAmount { get; set; }
+    }
+
+    public class UpdateVehicleConditionDTO
+    {
+        [Required]
+        public int DetailId { get; set; }
+
+        [Required]
+        public DAL.Entities.VehicleCondition Condition { get; set; }
+
+        public int? ActualVehicleTypeId { get; set; }
+    }
+}
+
+namespace AutoWashPro.BLL.DTOs
+{
+    public class ForceCancelRequestDTO
+    {
+        public int? TimeSlotId { get; set; }
+
+        public DateTime? AffectedDate { get; set; }
+
+        [Required(ErrorMessage = "Reason is required to notify customers.")]
+        public required string Reason { get; set; }
     }
 }

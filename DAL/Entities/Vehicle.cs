@@ -18,5 +18,11 @@ namespace AutoWashPro.DAL.Entities
 
         [ForeignKey("VehicleTypeId")]
         public VehicleType VehicleType { get; set; }
+
+        public string? RegistrationPhotoUrl { get; set; }
+
+        public string? UserNote { get; set; }
+
+        public bool IsDeleted { get; set; } = false;
     }
 }

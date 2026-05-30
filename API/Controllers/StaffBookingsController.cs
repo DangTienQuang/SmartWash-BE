@@ -1,3 +1,4 @@
+using AutoWashPro.BLL.DTOs;
 using AutoWashPro.BLL.Services;    
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -21,29 +22,36 @@ namespace AutoWashPro.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllBookingsByDate([FromQuery] DateTime targetDate)
         {
-            try
-            {
-                var result = await _bookingService.GetAllBookingsByDateAsync(targetDate);
-                return Ok(new { statusCode = 200, message = "Success", data = result });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { statusCode = 400, message = ex.Message });
-            }
+            var result = await _bookingService.GetAllBookingsByDateAsync(targetDate);
+            return Ok(new { statusCode = 200, message = "Success", data = result });
         }
 
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateBookingStatus(int id, [FromQuery] string newStatus)
         {
-            try
-            {
-                await _bookingService.UpdateBookingStatusAsync(id, newStatus);
-                return Ok(new { statusCode = 200, message = $"Đã cập nhật trạng thái thành: {newStatus}" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { statusCode = 400, message = ex.Message });
-            }
+            await _bookingService.UpdateBookingStatusAsync(id, newStatus);
+            return Ok(new { statusCode = 200, message = $"Đã cập nhật trạng thái thành: {newStatus}" });
+        }
+
+        [HttpPut("{id}/no-show")]
+        public async Task<IActionResult> MarkAsNoShow(int id)
+        {
+            await _bookingService.MarkAsNoShowAsync(id);
+            return Ok(new { statusCode = 200, message = "Đã đánh dấu khách No-Show thành công." });
+        }
+
+        [HttpPut("{detailId}/report-mismatch")]
+        public async Task<IActionResult> ReportMismatch(int detailId, [FromQuery] AutoWashPro.DAL.Entities.VehicleCondition condition, [FromQuery] int actualTypeId)
+        {
+            await _bookingService.ReportMismatchAsync(detailId, condition, actualTypeId);
+            return Ok(new { statusCode = 200, message = "Đã cập nhật tình trạng xe và tính lại phụ phí thành công." });
+        }
+        [HttpPost("force-cancel")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> ForceCancelBookings([FromBody] ForceCancelRequestDTO request)
+        {
+            await _bookingService.ForceCancelBookingsAsync(request);
+            return Ok(new { statusCode = 200, message = "Đã hủy các lịch hẹn thành công, hoàn tiền và gửi email thông báo tới khách hàng." });
         }
     }
 }

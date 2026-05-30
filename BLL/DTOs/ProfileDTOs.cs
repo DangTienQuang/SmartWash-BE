@@ -30,6 +30,10 @@ namespace AutoWashPro.BLL.DTOs
 
         [Required(ErrorMessage = "Vui lòng chọn loại xe.")]
         public int VehicleTypeId { get; set; }
+
+        public string? RegistrationPhotoUrl { get; set; }
+
+        public string? UserNote { get; set; }
     }
 
     public class UpdateVehicleDTO
@@ -40,6 +44,7 @@ namespace AutoWashPro.BLL.DTOs
 
     public class UpdateUserProfileDTO
     {
+        [RegularExpression(@"^(?!\s*$).+", ErrorMessage = "Họ tên không được chỉ chứa khoảng trắng.")]
         public string? FullName { get; set; }
 
         [RegularExpression(@"^(0[3|5|7|8|9])+([0-9]{8})$", ErrorMessage = "Số điện thoại không hợp lệ.")]
@@ -83,5 +88,23 @@ namespace AutoWashPro.BLL.DTOs
         public bool HasActiveBooking { get; set; }
         public int? ActiveBookingId { get; set; }
         public DateTime? ScheduledTime { get; set; }
+    }
+
+    public class AdminOtherVehicleDTO
+    {
+        public string LicensePlate { get; set; }
+        public int VehicleTypeId { get; set; }
+        public string VehicleTypeName { get; set; }
+        public int? UserId { get; set; }
+        public string? OwnerName { get; set; }
+        public string? OwnerPhone { get; set; }
+        public string? RegistrationPhotoUrl { get; set; }
+        public string? UserNote { get; set; }
+    }
+
+    public class UpdateVehicleTypeAdminDTO
+    {
+        [Required(ErrorMessage = "Vui lòng chọn loại xe.")]
+        public int VehicleTypeId { get; set; }
     }
 }
