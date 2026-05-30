@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(AutoWashDbContext))]
-    [Migration("20260522125832_PromotionPoint")]
-    partial class PromotionPoint
+    [Migration("20260530103116_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
