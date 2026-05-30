@@ -160,6 +160,7 @@ builder.Services.AddScoped<IAIModerationService, AIModerationService>();
 builder.Services.AddHttpClient<ILLMService, GeminiAIService>();
 builder.Services.AddScoped<IAIIntentService, AIIntentService>();
 builder.Services.AddScoped<ILicensePlateService, LicensePlateService>();
+builder.Services.AddScoped<IStaffManagementService, StaffManagementService>();
 
 builder.Services.AddHostedService<AutoWashPro.API.Workers.AnnualTierResetWorker>();
 

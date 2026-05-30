@@ -3,6 +3,7 @@ using System;
 using AutoWashPro.DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(AutoWashDbContext))]
-    partial class AutoWashDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260530024916_AddStaffManagement")]
+    partial class AddStaffManagement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -376,46 +379,6 @@ namespace DAL.Migrations
                     b.HasIndex("ToAssignmentId");
 
                     b.ToTable("ShiftSwapRequests");
-                });
-
-            modelBuilder.Entity("AutoWashPro.DAL.Entities.ManagerProfile", b =>
-                {
-                    b.Property<int>("ManagerProfileId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<DateTime?>("HiredDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Position")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ManagerProfileId");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("ManagerProfiles");
-                });
-
-            modelBuilder.Entity("AutoWashPro.DAL.Entities.ManagerProfile", b =>
-                {
-                    b.HasOne("AutoWashPro.DAL.Entities.User", "User")
-                        .WithOne("ManagerProfile")
-                        .HasForeignKey("AutoWashPro.DAL.Entities.ManagerProfile", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("AutoWashPro.DAL.Entities.StaffProfile", b =>
@@ -1080,8 +1043,6 @@ namespace DAL.Migrations
 
                     b.Navigation("CustomerProfile")
                         .IsRequired();
-
-                    b.Navigation("ManagerProfile");
 
                     b.Navigation("StaffProfile");
 
