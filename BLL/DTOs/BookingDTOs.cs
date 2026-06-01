@@ -12,6 +12,27 @@ namespace AutoWashPro.BLL.DTOs
         public string? Reason { get; set; }
     }
 
+    public class CompatibilityDTO
+    {
+        public bool IsCompatible { get; set; }
+        public string? Message { get; set; }
+        public int RemainingCapacity { get; set; }
+        public int TotalCapacityWeight { get; set; }
+        public int MaxCapacityOfSlot { get; set; }
+    }
+
+    public class CheckCompatibilityRequestDTO
+    {
+        [Required]
+        public int SlotId { get; set; }
+
+        [Required]
+        public DateTime TargetDate { get; set; }
+
+        [Required]
+        public List<VehicleBookingItemDTO> Vehicles { get; set; } = new List<VehicleBookingItemDTO>();
+    }
+
     public class VehicleBookingItemDTO
     {
         [Required]
@@ -21,7 +42,20 @@ namespace AutoWashPro.BLL.DTOs
         [Required]
         public int ServiceId { get; set; }
     }
+    public class CheckAvailableSlotsRequestDTO
+    {
+        [Required]
+        public DateTime TargetDate { get; set; }
 
+        [Required]
+        public List<BookingVehicleItemDTO> BookingVehicles { get; set; } = new List<BookingVehicleItemDTO>();
+    }
+
+    public class BookingVehicleItemDTO
+    {
+        public int VehicleTypeId { get; set; }
+        public int ServiceId { get; set; }
+    }
     public class CreateBookingDTO
     {
         [Required(ErrorMessage = "Vui lòng chọn ít nhất 1 xe.")]
@@ -74,3 +108,17 @@ namespace AutoWashPro.BLL.DTOs
         public int? ActualVehicleTypeId { get; set; }
     }
 }
+
+namespace AutoWashPro.BLL.DTOs
+{
+    public class ForceCancelRequestDTO
+    {
+        public int? TimeSlotId { get; set; }
+
+        public DateTime? AffectedDate { get; set; }
+
+        [Required(ErrorMessage = "Reason is required to notify customers.")]
+        public required string Reason { get; set; }
+    }
+}
+
