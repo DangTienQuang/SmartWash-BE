@@ -1,11 +1,15 @@
+using API.Configurations;
 using AutoWashPro.BLL.Services;
 using AutoWashPro.DAL.Data;
 using BLL.Helpers;
 using BLL.Services;
+using BLL.Services.Interface;
+using CloudinaryDotNet;
 using DAL.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PayOS;
@@ -184,6 +188,29 @@ builder.Services.AddSwaggerGen(c =>
 // ==============================================================================
 // 9. BUILD APP & MIDDLEWARE PIPELINE
 // ==============================================================================
+builder.Services.AddScoped<IBusinessService, BusinessService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IBookingAttendanceService, BookingAttendanceService>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+
+builder.Services.AddHostedService<AutoWashPro.API.Workers.AnnualTierResetWorker>();
+
+builder.Services.AddSingleton(provider =>
+{
+    var settings =
+        provider.GetRequiredService<
+            IOptions<CloudinarySettings>>()
+        .Value;
+
+    var account = new Account(
+        settings.CloudName,
+        settings.ApiKey,
+        settings.ApiSecret);
+
+    return new Cloudinary(account);
+});
+
 var app = builder.Build();
 
 app.UseMiddleware<AutoWashPro.API.Middlewares.ExceptionMiddleware>();
