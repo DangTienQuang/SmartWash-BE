@@ -3,6 +3,7 @@ using System;
 using AutoWashPro.DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(AutoWashDbContext))]
-    partial class AutoWashDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260530024916_AddStaffManagement")]
+    partial class AddStaffManagement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -86,9 +89,6 @@ namespace DAL.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("BookingId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CapacityWeight")
                         .HasColumnType("int");
 
                     b.Property<string>("LicensePlate")
@@ -381,46 +381,6 @@ namespace DAL.Migrations
                     b.ToTable("ShiftSwapRequests");
                 });
 
-            modelBuilder.Entity("AutoWashPro.DAL.Entities.ManagerProfile", b =>
-                {
-                    b.Property<int>("ManagerProfileId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<DateTime?>("HiredDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Position")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ManagerProfileId");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("ManagerProfiles");
-                });
-
-            modelBuilder.Entity("AutoWashPro.DAL.Entities.ManagerProfile", b =>
-                {
-                    b.HasOne("AutoWashPro.DAL.Entities.User", "User")
-                        .WithOne("ManagerProfile")
-                        .HasForeignKey("AutoWashPro.DAL.Entities.ManagerProfile", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("AutoWashPro.DAL.Entities.StaffProfile", b =>
                 {
                     b.Property<int>("StaffProfileId")
@@ -658,20 +618,8 @@ namespace DAL.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
-                    b.Property<string>("CarModel")
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("RegistrationPhotoUrl")
-                        .HasColumnType("longtext");
-
                     b.Property<int?>("UserId")
                         .HasColumnType("int");
-
-                    b.Property<string>("UserNote")
-                        .HasColumnType("longtext");
 
                     b.Property<int>("VehicleTypeId")
                         .HasColumnType("int");
@@ -689,9 +637,6 @@ namespace DAL.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<int>("BaseWeight")
                         .HasColumnType("int");
 
                     b.Property<string>("Description")
@@ -1098,8 +1043,6 @@ namespace DAL.Migrations
 
                     b.Navigation("CustomerProfile")
                         .IsRequired();
-
-                    b.Navigation("ManagerProfile");
 
                     b.Navigation("StaffProfile");
 
