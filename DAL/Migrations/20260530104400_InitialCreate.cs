@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DAL.Migrations
 {
     /// <inheritdoc />
-    public partial class Ten_Migration_Cua_Ban : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -209,7 +209,6 @@ namespace DAL.Migrations
                     UserId = table.Column<int>(type: "int", nullable: true),
                     FallbackQrCode = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    TrustScorePenalty = table.Column<int>(type: "int", nullable: false),
                     ScheduledTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Status = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -256,7 +255,7 @@ namespace DAL.Migrations
                     ReferredById = table.Column<int>(type: "int", nullable: true),
                     TotalPoint = table.Column<int>(type: "int", nullable: false),
                     PromotionPoint = table.Column<int>(type: "int", nullable: false),
-                    TrustScore = table.Column<int>(type: "int", nullable: false),
+                    CurrentYearTierPoints = table.Column<int>(type: "int", nullable: false),
                     RowVersion = table.Column<DateTime>(type: "datetime(6)", rowVersion: true, nullable: true)
                 },
                 constraints: table =>
@@ -364,7 +363,12 @@ namespace DAL.Migrations
                     LicensePlate = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     UserId = table.Column<int>(type: "int", nullable: true),
-                    VehicleTypeId = table.Column<int>(type: "int", nullable: false)
+                    VehicleTypeId = table.Column<int>(type: "int", nullable: false),
+                    RegistrationPhotoUrl = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    UserNote = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {

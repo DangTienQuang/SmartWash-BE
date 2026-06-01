@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(AutoWashDbContext))]
-    [Migration("20260529042859_UpdateBusinessLogic_Final")]
-    partial class UpdateBusinessLogic_Final
+    [Migration("20260531102247_InitialCreate01")]
+    partial class InitialCreate01
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -89,6 +89,9 @@ namespace DAL.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CapacityWeight")
                         .HasColumnType("int");
 
                     b.Property<string>("LicensePlate")
@@ -456,8 +459,17 @@ namespace DAL.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("RegistrationPhotoUrl")
+                        .HasColumnType("longtext");
+
                     b.Property<int?>("UserId")
                         .HasColumnType("int");
+
+                    b.Property<string>("UserNote")
+                        .HasColumnType("longtext");
 
                     b.Property<int>("VehicleTypeId")
                         .HasColumnType("int");
