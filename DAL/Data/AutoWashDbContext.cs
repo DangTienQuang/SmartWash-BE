@@ -32,6 +32,7 @@ namespace AutoWashPro.DAL.Data
         public DbSet<StaffShiftAssignment> StaffShiftAssignments { get; set; }
         public DbSet<OvertimeRequest> OvertimeRequests { get; set; }
         public DbSet<ShiftSwapRequest> ShiftSwapRequests { get; set; }
+        public DbSet<CarModel> CarModels { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
