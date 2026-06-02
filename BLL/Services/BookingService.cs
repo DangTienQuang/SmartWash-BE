@@ -129,49 +129,6 @@ namespace AutoWashPro.BLL.Services
 
             return response;
         }
-        public async Task<List<SlotAvailabilityDTO>> GetAvailabilityForDateAsync(DateTime date)
-        {
-            var targetDateVn = date.ToVnTime().Date;
-
-            // Tìm tất cả capacities cho ngày đó
-            var capacities = await _context.DailySlotCapacities
-                .Include(c => c.TimeSlot)
-                .Where(c => c.Date.Date == targetDateVn)
-                .ToListAsync();
-
-            if (!capacities.Any())
-            {
-                return new List<SlotAvailabilityDTO>();
-            }
-
-            var nowInVN = DateTime.UtcNow.ToVnTime();
-            var isPastDate = targetDateVn < nowInVN.Date;
-            var isToday = targetDateVn == nowInVN.Date;
-
-            var result = new List<SlotAvailabilityDTO>();
-
-            // Do capacities đã include TimeSlot nên có thể thiếu TimeSlot chưa được tạo DailySlotCapacity.
-            // Thông thường DailySlotCapacity được tạo từ Admin (có sẵn hàm sinh ra). Mình lặp qua capacities.
-            // Sắp xếp theo StartTime để hiển thị đẹp
-            capacities = capacities.OrderBy(c => c.TimeSlot.StartTime).ToList();
-
-            foreach (var capacity in capacities)
-            {
-                bool isExpiredTime = isToday && (capacity.TimeSlot.StartTime <= nowInVN.TimeOfDay);
-                bool isExpired = isPastDate || isExpiredTime;
-                bool isFull = capacity.BookedWeight >= capacity.TimeSlot.MaxCapacity;
-
-                result.Add(new SlotAvailabilityDTO
-                {
-                    SlotId = capacity.SlotId,
-                    TimeRange = $"{capacity.TimeSlot.StartTime:hh\\:mm} - {capacity.TimeSlot.EndTime:hh\\:mm}",
-                    IsAvailable = !isExpired && !isFull,
-                    Reason = isExpired ? "Đã qua giờ" : (isFull ? "Đã đầy" : string.Empty)
-                });
-            }
-
-            return result;
-        }
 
         public async Task<List<BookingResponseDTO>> GetAllBookingsByDateAsync(DateTime targetDate)
         {
@@ -220,6 +177,144 @@ namespace AutoWashPro.BLL.Services
             };
         }
 
+        private string NormalizeLicensePlate(string plate)
+        {
+            if (string.IsNullOrWhiteSpace(plate)) return string.Empty;
+            return new string(plate.Where(char.IsLetterOrDigit).ToArray()).ToUpper();
+        }
+
+        public async Task<List<BookingResponseDTO>> GetBookingsByLicensePlateAsync(string licensePlate)
+        {
+            var normalizedPlate = NormalizeLicensePlate(licensePlate);
+            if (string.IsNullOrEmpty(normalizedPlate))
+                throw new AutoWashPro.BLL.Exceptions.BadRequestException("Biển số xe không hợp lệ.");
+
+            // Tối ưu hóa: Lấy danh sách BookingId dựa trên LicensePlate trước
+            var matchedBookingIds = await _context.Set<AutoWashPro.DAL.Entities.BookingDetail>()
+                .Where(bd => bd.LicensePlate.Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper() == normalizedPlate)
+                .Select(bd => bd.BookingId)
+                .Distinct()
+                .ToListAsync();
+
+            var query = _context.Bookings
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.Service)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.ActualVehicleType)
+                .Include(b => b.User)
+                    .ThenInclude(u => u.CustomerProfile)
+                .Where(b => matchedBookingIds.Contains(b.BookingId))
+                .AsNoTracking();
+
+            var bookings = await query.ToListAsync();
+
+            var matchedBookings = bookings.Where(b =>
+                b.BookingDetails != null && b.BookingDetails.Any(bd => NormalizeLicensePlate(bd.LicensePlate) == normalizedPlate))
+                .OrderByDescending(b => b.ScheduledTime)
+                .ToList();
+
+            if (matchedBookings.Count == 0)
+            {
+                return new List<BookingResponseDTO>();
+            }
+
+            return matchedBookings.Select(b =>
+            {
+                var matchingDetail = b.BookingDetails.FirstOrDefault(bd => NormalizeLicensePlate(bd.LicensePlate) == normalizedPlate);
+                var serviceName = matchingDetail?.Service?.ServiceName ?? "N/A";
+                return new BookingResponseDTO
+                {
+                    BookingId = b.BookingId,
+                    LicensePlate = matchingDetail?.LicensePlate ?? licensePlate,
+                    ServiceName = serviceName,
+                    ScheduledTime = b.ScheduledTime,
+                    Status = b.Status,
+                    OriginalPrice = b.OriginalPrice,
+                    PointDiscountAmount = b.PointDiscountAmount,
+                    VoucherDiscountAmount = b.VoucherDiscountAmount,
+                    FinalAmount = b.FinalAmount
+                };
+            }).ToList();
+        }
+
+        public async Task<BookingResponseDTO> UpdateBookingStatusByLicensePlateAsync(string licensePlate, string newStatus)
+        {
+            var allowedStatuses = new[] { "Pending", "CheckedIn", "Completed", "Cancelled", "Delayed", "CancelledBySystem" };
+            if (!allowedStatuses.Contains(newStatus))
+                throw new AutoWashPro.BLL.Exceptions.BadRequestException("Trạng thái không hợp lệ.");
+
+            var normalizedPlate = NormalizeLicensePlate(licensePlate);
+            if (string.IsNullOrEmpty(normalizedPlate))
+                throw new AutoWashPro.BLL.Exceptions.BadRequestException("Biển số xe không hợp lệ.");
+
+            var startTime = DateTime.UtcNow.AddHours(-24);
+            var endTime = DateTime.UtcNow.AddHours(24);
+
+            var query = await _context.Bookings
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.Service)
+                .Where(b => b.ScheduledTime >= startTime && b.ScheduledTime <= endTime)
+                .ToListAsync();
+
+            var matches = query.Where(b =>
+                b.BookingDetails.Any(bd => NormalizeLicensePlate(bd.LicensePlate) == normalizedPlate)
+            ).ToList();
+
+            if (matches.Count == 0)
+            {
+                throw new AutoWashPro.BLL.Exceptions.NotFoundException($"Không tìm thấy lịch hẹn nào cho xe {licensePlate} trong khoảng thời gian gần đây.");
+            }
+
+            var todayInVN = DateTime.UtcNow.ToVnTime().Date;
+            var todaysBookings = matches.Where(b => b.ScheduledTime.ToVnTime().Date == todayInVN).ToList();
+
+            if (todaysBookings.Count == 0)
+            {
+                throw new AutoWashPro.BLL.Exceptions.NotFoundException($"Xe {licensePlate} có lịch, nhưng không phải là lịch của ngày hôm nay ({todayInVN:dd/MM/yyyy}).");
+            }
+
+            if (todaysBookings.Count > 1)
+            {
+                throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Phát hiện nhiều lịch hẹn ({todaysBookings.Count}) cho xe {licensePlate} trong ngày hôm nay. Vui lòng sử dụng mã Booking ID để thao tác.");
+            }
+
+            var booking = todaysBookings.First();
+
+            if (booking.Status == newStatus)
+            {
+                throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Trạng thái hiện tại của đơn hàng đã là '{newStatus}' rồi.");
+            }
+
+            bool isStatusValid = false;
+            if (newStatus == "CheckedIn" && booking.Status == "Pending") isStatusValid = true;
+            else if (newStatus == "Completed" && booking.Status == "CheckedIn") isStatusValid = true;
+            else if ((newStatus == "Cancelled" || newStatus == "Delayed") && (booking.Status == "Pending" || booking.Status == "CheckedIn")) isStatusValid = true;
+
+            if (!isStatusValid)
+            {
+                throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Không thể chuyển trạng thái từ '{booking.Status}' sang '{newStatus}'.");
+            }
+
+            var isUpdated = await UpdateBookingStatusAsync(booking.BookingId, newStatus);
+
+            if (!isUpdated)
+            {
+                throw new AutoWashPro.BLL.Exceptions.BadRequestException("Cập nhật trạng thái thất bại do hệ thống.");
+            }
+
+            return new BookingResponseDTO
+            {
+                BookingId = booking.BookingId,
+                LicensePlate = normalizedPlate,
+                ServiceName = string.Join(", ", booking.BookingDetails.Select(d => d.Service.ServiceName)),
+                ScheduledTime = booking.ScheduledTime,
+                Status = newStatus,
+                OriginalPrice = booking.OriginalPrice,
+                PointDiscountAmount = booking.PointDiscountAmount,
+                VoucherDiscountAmount = booking.VoucherDiscountAmount,
+                FinalAmount = booking.FinalAmount
+            };
+        }
         public async Task<bool> UpdateBookingStatusAsync(int bookingId, string newStatus)
         {
             var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.BookingId == bookingId);
