@@ -99,6 +99,7 @@ namespace AutoWashPro.BLL.Services
 
             var checkoutUrlProp = result.GetType().GetProperty("checkoutUrl") ?? result.GetType().GetProperty("CheckoutUrl");
 
+            
             return new PaymentLinkResult
             {
                 CheckoutUrl = checkoutUrlProp?.GetValue(result)?.ToString() ?? string.Empty,

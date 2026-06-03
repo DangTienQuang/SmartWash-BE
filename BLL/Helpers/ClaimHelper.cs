@@ -1,5 +1,7 @@
 using System.Security.Claims;
 using AutoWashPro.BLL.Exceptions;
+using System;
+using System.Security.Claims;
 
 namespace BLL.Helpers
 {
@@ -7,13 +9,12 @@ namespace BLL.Helpers
     {
         public static int GetUserId(ClaimsPrincipal user)
         {
-            var claimValue = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+                throw new Exception("Unauthorized: Không tìm thấy User ID trong token.");
 
-            if (string.IsNullOrWhiteSpace(claimValue))
-                throw new UnauthorizedException("Khong tim thay UserId trong token. Vui long dang nhap lai.");
-
-            if (!int.TryParse(claimValue, out var userId))
-                throw new UnauthorizedException("UserId trong token khong hop le. Vui long dang nhap lai.");
+            if (!int.TryParse(userIdClaim, out int userId))
+                throw new Exception("Unauthorized: User ID không hợp lệ.");
 
             return userId;
         }

@@ -212,7 +212,7 @@ namespace AutoWashPro.BLL.Services
 
             var orderCodeStr = data.OrderCode.ToString();
 
-            using var dbTransaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            using var dbTransaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
             try
             {
                 var transaction = await _context.Transactions

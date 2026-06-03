@@ -54,6 +54,9 @@ namespace AutoWashPro.BLL.Services
             await Task.Yield();
             try
             {
+                var asm = _payOS.GetType().Assembly;
+                var webhookType = asm.GetType("PayOS.Types.WebhookType");
+                
                 var verifiedData = _payOS.verifyPaymentWebhookData(webhookBody);
                 if (verifiedData == null) return null;
 

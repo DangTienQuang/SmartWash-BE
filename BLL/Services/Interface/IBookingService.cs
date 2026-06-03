@@ -15,12 +15,15 @@ namespace AutoWashPro.BLL.Services
         Task<BookingPaymentLinkResponseDTO> CreateBookingPaymentLinkAsync(int userId, int bookingId, CreateBookingPaymentLinkDTO request);
         Task<BookingResponseDTO> CreateWalkInBookingAsync(int staffId, CreateWalkInBookingDTO request);
         Task<List<BookingResponseDTO>> GetAllBookingsByDateAsync(DateTime targetDate);
+        Task<List<BookingResponseDTO>> GetBookingsByLicensePlateAsync(string licensePlate);
         Task<bool> UpdateBookingStatusAsync(int bookingId, string newStatus);
+        Task<BookingResponseDTO> UpdateBookingStatusByLicensePlateAsync(string licensePlate, string newStatus);
         Task<List<BookingResponseDTO>> GetMyBookingsAsync(int userId);
         Task<bool> CancelBookingAsync(int userId, int bookingId);
         Task<bool> UpdateVehicleConditionAsync(int staffId, int bookingId, UpdateVehicleConditionDTO request);
         Task MarkAsNoShowAsync(int bookingId);
         Task ReportMismatchAsync(int detailId, AutoWashPro.DAL.Entities.VehicleCondition condition, int actualTypeId);
         Task ForceCancelBookingsAsync(ForceCancelRequestDTO request);
+        Task<bool> SendBookingConfirmationEmailAsync(int userId, int bookingId);
     }
 }
