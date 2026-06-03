@@ -7,6 +7,7 @@ using AutoWashPro.BLL.Helpers;
 using AutoWashPro.BLL.DTOs;
 using AutoWashPro.DAL.Data;
 using AutoWashPro.DAL.Entities;
+using BLL.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoWashPro.BLL.Services
@@ -23,7 +24,8 @@ namespace AutoWashPro.BLL.Services
             AutoWashDbContext context,
             IWalletService walletService,
             ITierService tierService,
-            IEmailService emailService, IVoucherService voucherService)
+            IEmailService emailService,
+            IVoucherService voucherService)
         {
             _context = context;
             _walletService = walletService;
@@ -331,6 +333,11 @@ namespace AutoWashPro.BLL.Services
             var allowedStatuses = new[] { "Pending", "CheckedIn", "Completed", "Cancelled", "Delayed", "CancelledBySystem" };
             if (!allowedStatuses.Contains(newStatus)) throw new AutoWashPro.BLL.Exceptions.BadRequestException("Trạng thái không hợp lệ.");
 
+            if ((newStatus == "CheckedIn" || newStatus == "Completed")
+                && booking.FinalAmount > 0
+                && !await HasCompletedBookingPaymentAsync(booking.BookingId))
+                throw new AutoWashPro.BLL.Exceptions.BadRequestException("Lịch hẹn chưa thanh toán, không thể check-in hoặc hoàn thành.");
+
             if (newStatus == "Completed" && booking.Status != "Completed")
             {
                 if (booking.UserId > 0)
@@ -589,8 +596,22 @@ namespace AutoWashPro.BLL.Services
                 await CalculateBookingPricingAsync(userId, totalOriginalPrice, request.VoucherId, request.PointsToUse, targetDateTime);
 
             // PHASE 5: Transaction
+            var paymentMethod = request.PaymentMethod?.Trim() ?? "Wallet";
+            var isPayOsPayment = string.Equals(paymentMethod, "PayOS", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(paymentMethod, "QR", StringComparison.OrdinalIgnoreCase);
+            var isWalletPayment = string.Equals(paymentMethod, "Wallet", StringComparison.OrdinalIgnoreCase);
+            if (!isPayOsPayment && !isWalletPayment)
+                throw new AutoWashPro.BLL.Exceptions.BadRequestException("Phương thức thanh toán không hợp lệ. Chỉ hỗ trợ Wallet hoặc QR.");
+
             var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
-            if (wallet == null || wallet.Balance < finalAmount)
+            if (wallet == null)
+            {
+                wallet = new Wallet { UserId = userId, Balance = 0, Status = "Active" };
+                _context.Wallets.Add(wallet);
+                await _context.SaveChangesAsync();
+            }
+
+            if (!isPayOsPayment && wallet.Balance < finalAmount)
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Số dư ví không đủ để đặt cọc. Cần: {finalAmount:N0}đ");
 
             try
@@ -606,17 +627,20 @@ namespace AutoWashPro.BLL.Services
                     throw new AutoWashPro.BLL.Exceptions.BadRequestException("Có người khác vừa đặt lịch. Vui lòng thử lại.");
                 }
 
-                // Deduct Wallet
-                wallet.Balance -= finalAmount;
+                Transaction? paymentTx = null;
+                if (!isPayOsPayment)
+                {
+                    wallet.Balance -= finalAmount;
 
-                var paymentTx = new Transaction
+                    paymentTx = new Transaction
                 {
                     WalletId = wallet.WalletId,
                     Amount = -finalAmount,
                     TransactionType = "Payment",
                     Description = $"Thanh toán cọc lịch rửa xe lúc {targetDateTime:dd/MM/yyyy HH:mm}"
-                };
-                _context.Transactions.Add(paymentTx);
+                    };
+                    _context.Transactions.Add(paymentTx);
+                }
 
                 // Apply Voucher & Points
                 if (userVoucher != null)
@@ -649,7 +673,10 @@ namespace AutoWashPro.BLL.Services
                 _context.Bookings.Add(booking);
                 await _context.SaveChangesAsync();
 
-                paymentTx.ReferenceBookingId = booking.BookingId;
+                if (paymentTx != null)
+                {
+                    paymentTx.ReferenceBookingId = booking.BookingId;
+                }
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
@@ -689,6 +716,25 @@ namespace AutoWashPro.BLL.Services
             }
         }
 
+        public async Task<BookingPaymentLinkResponseDTO> CreateBookingPaymentLinkAsync(int userId, int bookingId, CreateBookingPaymentLinkDTO request)
+        {
+            var result = await _walletService.CreatePaymentQrAsync(userId, new PaymentQrRequestDTO
+            {
+                PaymentType = "BookingPayment",
+                BookingId = bookingId,
+                CancelUrl = request.CancelUrl,
+                ReturnUrl = request.ReturnUrl
+            });
+
+            return new BookingPaymentLinkResponseDTO
+            {
+                BookingId = result.BookingId ?? bookingId,
+                Amount = result.Amount,
+                OrderCode = result.OrderCode,
+                PaymentUrl = result.PaymentUrl
+            };
+        }
+
         public async Task<List<BookingResponseDTO>> GetMyBookingsAsync(int userId)
         {
             var bookings = await _context.Bookings
@@ -726,6 +772,16 @@ namespace AutoWashPro.BLL.Services
             {
                 booking.Status = "Cancelled";
 
+                var pendingPaymentTransactions = await _context.Transactions
+                    .Where(t => t.ReferenceBookingId == booking.BookingId
+                             && t.TransactionType == "BookingPayment"
+                             && t.Status == "Pending")
+                    .ToListAsync();
+                foreach (var pendingPaymentTransaction in pendingPaymentTransactions)
+                {
+                    pendingPaymentTransaction.Status = "Expired";
+                }
+
                 var slot = await _context.TimeSlots.FirstOrDefaultAsync(s => s.StartTime == booking.ScheduledTime.TimeOfDay);
                 if (slot != null)
                 {
@@ -747,7 +803,7 @@ namespace AutoWashPro.BLL.Services
                 if (isRefundable)
                 {
                     var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
-                    if (wallet != null && booking.FinalAmount > 0)
+                    if (wallet != null && booking.FinalAmount > 0 && await HasCompletedBookingPaymentAsync(booking.BookingId))
                     {
                         wallet.Balance += booking.FinalAmount;
 
@@ -1223,11 +1279,21 @@ namespace AutoWashPro.BLL.Services
                 {
                     booking.Status = "CancelledBySystem";
 
+                    var pendingPaymentTransactions = await _context.Transactions
+                        .Where(t => t.ReferenceBookingId == booking.BookingId
+                                 && t.TransactionType == "BookingPayment"
+                                 && t.Status == "Pending")
+                        .ToListAsync();
+                    foreach (var pendingPaymentTransaction in pendingPaymentTransactions)
+                    {
+                        pendingPaymentTransaction.Status = "Expired";
+                    }
+
                     if (booking.UserId.HasValue)
                     {
                         var userId = booking.UserId.Value;
 
-                        if (booking.FinalAmount > 0) { await _walletService.RefundBalanceAsync(userId, booking.FinalAmount, $"Hoàn tiền hủy lịch tự động: {request.Reason}"); }
+                        if (booking.FinalAmount > 0 && await HasCompletedBookingPaymentAsync(booking.BookingId)) { await _walletService.RefundBalanceAsync(userId, booking.FinalAmount, $"Hoàn tiền hủy lịch tự động: {request.Reason}"); }
 
                         if (booking.PointsUsed > 0)
                         {
@@ -1256,5 +1322,14 @@ namespace AutoWashPro.BLL.Services
                 throw;
             }
         }
+
+        private Task<bool> HasCompletedBookingPaymentAsync(int bookingId)
+        {
+            return _context.Transactions.AnyAsync(t =>
+                t.ReferenceBookingId == bookingId
+                && t.Status == "Completed"
+                && (t.TransactionType == "Payment" || t.TransactionType == "BookingPayment"));
+        }
+
     }
 }

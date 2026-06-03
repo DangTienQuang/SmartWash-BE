@@ -148,6 +148,8 @@ builder.Services.AddScoped<IPhotoService, PhotoService>();
 // ==============================================================================
 // 7. BACKGROUND WORKERS
 // ==============================================================================
+builder.Services.AddScoped<IStaffManagementService, StaffManagementService>();
+
 builder.Services.AddHostedService<AutoWashPro.API.Workers.AnnualTierResetWorker>();
 builder.Services.AddHostedService<AutoWashPro.API.Workers.CRMCampaignWorker>();
 
