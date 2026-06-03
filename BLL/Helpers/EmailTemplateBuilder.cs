@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AutoWashPro.DAL.Entities;
 
-namespace AutoWashPro.BLL.Helpers
+namespace BLL.Helpers
 {
     public static class EmailTemplateBuilder
     {
