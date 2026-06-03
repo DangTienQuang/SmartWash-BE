@@ -13,6 +13,5 @@ namespace AutoWashPro.BLL.Services
         Task<AdminVoucherDTO> UpdateVoucherAsync(int id, CreateOrUpdateVoucherDTO request);
         Task<bool> DeleteVoucherAsync(int id);
         Task GenerateCompensationVoucherAsync(int userId);
-        Task<bool> ConsumePhysicalVoucherAsync(int userId, string voucherCode);
     }
 }

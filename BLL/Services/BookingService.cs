@@ -8,7 +8,6 @@ using AutoWashPro.BLL.DTOs;
 using AutoWashPro.DAL.Data;
 using AutoWashPro.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace AutoWashPro.BLL.Services
 {
@@ -19,20 +18,18 @@ namespace AutoWashPro.BLL.Services
         private readonly ITierService _tierService;
         private readonly IEmailService _emailService;
         private readonly IVoucherService _voucherService;
-        private readonly IServiceProvider _serviceProvider;
 
         public BookingService(
             AutoWashDbContext context,
             IWalletService walletService,
             ITierService tierService,
-            IEmailService emailService, IVoucherService voucherService, IServiceProvider serviceProvider)
+            IEmailService emailService, IVoucherService voucherService)
         {
             _context = context;
             _walletService = walletService;
             _tierService = tierService;
             _emailService = emailService;
             _voucherService = voucherService;
-            _serviceProvider = serviceProvider;
         }
 
         public async Task<List<TimeSlotResponseDTO>> GetAvailableSlotsAsync(int userId, CheckAvailableSlotsRequestDTO request)
@@ -451,18 +448,6 @@ namespace AutoWashPro.BLL.Services
         }
         // File: BLL/Services/BookingService.cs
 
-        public void TriggerConfirmationEmailInBackground(int userId, int bookingId)
-        {
-            _ = Task.Run(async () =>
-            {
-                using (var scope = _serviceProvider.CreateScope())
-                {
-                    var scopedBookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
-                    await scopedBookingService.SendBookingConfirmationEmailAsync(userId, bookingId);
-                }
-            });
-        }
-
         public async Task<bool> SendBookingConfirmationEmailAsync(int userId, int bookingId)
         {
             try
@@ -601,7 +586,7 @@ namespace AutoWashPro.BLL.Services
 
             // PHASE 4: Financial Math
             var (voucherDiscount, pointDiscount, pointsUsed, finalAmount, userVoucher) =
-                await CalculateBookingPricingAsync(userId, totalOriginalPrice, request.VoucherId, request.PointsToUse, targetDateTime);
+                await CalculateBookingPricingAsync(userId, totalOriginalPrice, request.VoucherId, request.PointsToUse);
 
             // PHASE 5: Transaction
             var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
@@ -825,7 +810,7 @@ namespace AutoWashPro.BLL.Services
         }
 
         private async Task<(decimal voucherDiscount, decimal pointDiscount, int pointsUsed, decimal finalAmount, UserVoucher? userVoucher)>
-            CalculateBookingPricingAsync(int userId, decimal originalPrice, int? voucherId, int pointsToUseRequest, DateTime scheduledTime)
+            CalculateBookingPricingAsync(int userId, decimal originalPrice, int? voucherId, int pointsToUseRequest)
         {
             decimal voucherDiscount = 0;
             UserVoucher? userVoucher = null;
@@ -839,33 +824,6 @@ namespace AutoWashPro.BLL.Services
                 if (userVoucher == null) throw new AutoWashPro.BLL.Exceptions.NotFoundException("Bạn không sở hữu Voucher này.");
                 if (userVoucher.IsUsed) throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher này đã được sử dụng.");
                 if (userVoucher.Voucher.ExpiryDate < DateTime.UtcNow) throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher này đã hết hạn.");
-
-                if (userVoucher.Voucher.VoucherType == AutoWashPro.DAL.Enums.VoucherType.PhysicalGift)
-                {
-                    throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher quà tặng hiện vật không thể dùng để trừ tiền hóa đơn.");
-                }
-
-                if (userVoucher.Voucher.ValidStartTime.HasValue && userVoucher.Voucher.ValidEndTime.HasValue)
-                {
-                    var timeOfDay = scheduledTime.ToVnTime().TimeOfDay;
-                    var startTime = userVoucher.Voucher.ValidStartTime.Value;
-                    var endTime = userVoucher.Voucher.ValidEndTime.Value;
-
-                    bool isValidTime = false;
-                    if (startTime <= endTime)
-                    {
-                        isValidTime = timeOfDay >= startTime && timeOfDay <= endTime;
-                    }
-                    else
-                    {
-                        isValidTime = timeOfDay >= startTime || timeOfDay <= endTime;
-                    }
-
-                    if (!isValidTime)
-                    {
-                        throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Voucher Happy Hour này chỉ áp dụng trong khung giờ từ {startTime:hh\\:mm} đến {endTime:hh\\:mm}.");
-                    }
-                }
 
                 voucherDiscount = Math.Min(userVoucher.Voucher.DiscountAmount, originalPrice);
             }
@@ -1128,7 +1086,7 @@ namespace AutoWashPro.BLL.Services
             }
 
             var (voucherDiscount, pointDiscount, pointsUsed, finalAmount, userVoucher) =
-                await CalculateBookingPricingAsync(customerUserId, totalOriginalPrice, request.VoucherId, request.PointsToUse, targetDateTime);
+                await CalculateBookingPricingAsync(customerUserId, totalOriginalPrice, request.VoucherId, request.PointsToUse);
 
             var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == customerUserId);
             if (wallet == null || wallet.Balance < finalAmount)

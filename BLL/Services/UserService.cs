@@ -44,8 +44,7 @@ namespace AutoWashPro.BLL.Services
                 {
                     LicensePlate = v.LicensePlate,
                     VehicleType = v.VehicleType?.Name
-                }).ToList(),
-                DateOfBirth = user.CustomerProfile?.DateOfBirth
+                }).ToList()
             };
         }
 
@@ -63,19 +62,6 @@ namespace AutoWashPro.BLL.Services
             {
                 user.CustomerProfile.FullName = request.FullName.Trim();
                 isUpdated = true;
-            }
-            if (request.DateOfBirth.HasValue)
-            {
-                if (user.CustomerProfile.DateOfBirth.HasValue && user.CustomerProfile.DateOfBirth.Value.Date != request.DateOfBirth.Value.Date)
-                {
-                    throw new BadRequestException("Bạn không thể tự thay đổi ngày sinh sau khi đã cập nhật. Vui lòng liên hệ Admin nếu cần hỗ trợ.");
-                }
-
-                if (!user.CustomerProfile.DateOfBirth.HasValue)
-                {
-                    user.CustomerProfile.DateOfBirth = request.DateOfBirth.Value.Date;
-                    isUpdated = true;
-                }
             }
             if (!string.IsNullOrWhiteSpace(request.PhoneNumber) && user.PhoneNumber != request.PhoneNumber.Trim())
             {
