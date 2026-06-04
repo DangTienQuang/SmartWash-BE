@@ -31,6 +31,13 @@ namespace AutoWashPro.DAL.Data
         public DbSet<Lane> Lanes { get; set; }
         public DbSet<StaffLaneAssignment> StaffLaneAssignments { get; set; }
         public DbSet<EmployeeProfile> EmployeeProfiles { get; set; }
+        public DbSet<BusinessProfile> BusinessProfiles { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<InvoiceItem> InvoiceItems { get; set; }
+        public DbSet<BookingDocument> BookingDocuments { get; set; }
+        public DbSet<FleetVehicle> FleetVehicles { get; set; }
+        public DbSet<FleetImportBatch> FleetImportBatches { get; set; }
+        public DbSet<FleetImportError> FleetImportErrors { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -140,6 +147,58 @@ namespace AutoWashPro.DAL.Data
                 .WithMany(b => b.Lanes)
                 .HasForeignKey(l => l.BranchId)
                 .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.BusinessProfile)
+                .WithOne(b => b.User)
+                .HasForeignKey<BusinessProfile>(b => b.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.BusinessProfile)
+                .WithMany()
+                .HasForeignKey(b => b.BusinessProfileId)
+                .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<Invoice>()
+                .HasOne(i => i.Booking)
+                .WithMany()
+                .HasForeignKey(i => i.BookingId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<InvoiceItem>()
+                .HasOne(ii => ii.Invoice)
+                .WithMany(i => i.InvoiceItems)
+                .HasForeignKey(ii => ii.InvoiceId);
+            modelBuilder.Entity<InvoiceItem>()
+                .HasOne(ii => ii.BookingDetail)
+                .WithMany()
+                .HasForeignKey(ii => ii.BookingDetailId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<BookingDocument>()
+                .HasOne(d => d.Booking)
+                .WithMany()
+                .HasForeignKey(d => d.BookingId);
+            modelBuilder.Entity<BusinessProfile>()
+                .HasOne(bp => bp.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(bp => bp.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<FleetVehicle>()
+                .HasIndex(x => x.LicensePlate)
+                .IsUnique();
+            modelBuilder.Entity<FleetVehicle>()
+                .HasOne(x => x.BusinessProfile)
+                .WithMany()
+                .HasForeignKey(x => x.BusinessProfileId);
+            modelBuilder.Entity<FleetVehicle>()
+                .HasOne(x => x.VehicleType)
+                .WithMany()
+                .HasForeignKey(x => x.VehicleTypeId);
+            modelBuilder.Entity<FleetImportBatch>()
+                .HasOne(x => x.BusinessProfile)
+                .WithMany()
+                .HasForeignKey(x => x.BusinessProfileId);
+            modelBuilder.Entity<FleetImportError>()
+                .HasOne(x => x.FleetImportBatch)
+                .WithMany()
+                .HasForeignKey(x => x.FleetImportBatchId);
         }
     }
 }

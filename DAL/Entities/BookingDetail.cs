@@ -1,3 +1,4 @@
+using DAL.Entities;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -23,5 +24,44 @@ namespace AutoWashPro.DAL.Entities
 
         [Required]
         public decimal Price { get; set; }
+        public int CapacityWeight { get; set; }
+        public VehicleCondition VehicleCondition { get; set; } = VehicleCondition.Clean;
+
+        public int? ActualVehicleTypeId { get; set; }
+
+        [ForeignKey("ActualVehicleTypeId")]
+        public VehicleType? ActualVehicleType { get; set; }
+
+        public decimal MismatchSurcharge { get; set; } = 0;
+
+        public int? ProcessingLaneId { get; set; }
+
+        [ForeignKey("ProcessingLaneId")]
+        public Lane? ProcessingLane { get; set; }
+
+        public int? ProcessingStaffId { get; set; }
+
+        [ForeignKey("ProcessingStaffId")]
+        public User? ProcessingStaff { get; set; }
+
+        [MaxLength(20)]
+        public string Status { get; set; } = "Pending"; // CheckedIn, Processing, Completed
+        public string AttendanceStatus { get; set; } = "Pending";
+
+        public DateTime? CheckInTime { get; set; }
+
+        public DateTime? CheckOutTime { get; set; }
+
+        public decimal DepositAmount { get; set; }
+
+        public string DepositStatus { get; set; } = "Reserved";
+
+        public decimal? ActualPrice { get; set; }
+
+        public int? InvoiceId { get; set; }
+
+        public Vehicle? Vehicle { get; set; }
+
+        public Invoice? Invoice { get; set; }
     }
 }
