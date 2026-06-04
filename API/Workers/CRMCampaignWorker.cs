@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using AutoWashPro.DAL.Data;
 using AutoWashPro.DAL.Entities;
 using AutoWashPro.BLL.Services;
-using AutoWashPro.BLL.Helpers;
+using BLL.Helpers;
 
 namespace AutoWashPro.API.Workers
 {

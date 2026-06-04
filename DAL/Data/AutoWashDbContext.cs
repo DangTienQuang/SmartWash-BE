@@ -103,6 +103,8 @@ namespace AutoWashPro.DAL.Data
                 .WithMany()
                 .HasForeignKey(s => s.ToAssignmentId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<User>()
                 .HasOne(u => u.EmployeeProfile)
                 .WithOne(e => e.User)
                 .HasForeignKey<EmployeeProfile>(e => e.EmployeeId);

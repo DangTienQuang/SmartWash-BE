@@ -282,16 +282,30 @@ namespace DAL.Migrations
                     b.ToTable("DailySlotCapacities");
                 });
 
-            modelBuilder.Entity("AutoWashPro.DAL.Entities.ManagerProfile", b =>
-                {
-                    b.Property<int>("ManagerProfileId")
-                        .ValueGeneratedOnAdd()
             modelBuilder.Entity("AutoWashPro.DAL.Entities.EmployeeProfile", b =>
                 {
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int");
 
                     b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("EmployeeId");
+
+                    b.HasIndex("BranchId");
+
+                    b.ToTable("EmployeeProfiles");
+                });
+
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.ManagerProfile", b =>
+                {
+                    b.Property<int>("ManagerProfileId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     b.Property<string>("FullName")
@@ -362,11 +376,6 @@ namespace DAL.Migrations
                     b.HasIndex("StaffUserId");
 
                     b.ToTable("OvertimeRequests");
-                    b.HasKey("EmployeeId");
-
-                    b.HasIndex("BranchId");
-
-                    b.ToTable("EmployeeProfiles");
                 });
 
             modelBuilder.Entity("AutoWashPro.DAL.Entities.Lane", b =>
@@ -560,8 +569,31 @@ namespace DAL.Migrations
                     b.ToTable("StaffProfiles");
                 });
 
-            modelBuilder.Entity("AutoWashPro.DAL.Entities.StaffShiftAssignment", b =>
             modelBuilder.Entity("AutoWashPro.DAL.Entities.StaffLaneAssignment", b =>
+                {
+                    b.Property<int>("AssignmentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("AssignedDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("LaneId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.HasKey("AssignmentId");
+
+                    b.HasIndex("LaneId");
+
+                    b.HasIndex("StaffId");
+
+                    b.ToTable("StaffLaneAssignments");
+                });
+
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.StaffShiftAssignment", b =>
                 {
                     b.Property<int>("AssignmentId")
                         .ValueGeneratedOnAdd()
@@ -589,13 +621,6 @@ namespace DAL.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<int>("WorkShiftId")
-                    b.Property<DateTime>("AssignedDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("LaneId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StaffId")
                         .HasColumnType("int");
 
                     b.HasKey("AssignmentId");
@@ -606,11 +631,6 @@ namespace DAL.Migrations
                         .IsUnique();
 
                     b.ToTable("StaffShiftAssignments");
-                    b.HasIndex("LaneId");
-
-                    b.HasIndex("StaffId");
-
-                    b.ToTable("StaffLaneAssignments");
                 });
 
             modelBuilder.Entity("AutoWashPro.DAL.Entities.Tier", b =>
@@ -1138,6 +1158,8 @@ namespace DAL.Migrations
                         .IsRequired();
 
                     b.Navigation("StaffUser");
+                });
+
             modelBuilder.Entity("AutoWashPro.DAL.Entities.EmployeeProfile", b =>
                 {
                     b.HasOne("AutoWashPro.DAL.Entities.Branch", "Branch")
@@ -1252,6 +1274,8 @@ namespace DAL.Migrations
                     b.Navigation("StaffUser");
 
                     b.Navigation("WorkShift");
+                });
+
             modelBuilder.Entity("AutoWashPro.DAL.Entities.StaffLaneAssignment", b =>
                 {
                     b.HasOne("AutoWashPro.DAL.Entities.Lane", "Lane")
