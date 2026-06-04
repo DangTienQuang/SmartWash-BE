@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoWashPro.BLL.Constants;
-using AutoWashPro.BLL.Helpers;
 using AutoWashPro.BLL.DTOs;
 using AutoWashPro.DAL.Data;
 using AutoWashPro.DAL.Entities;
@@ -478,7 +477,7 @@ namespace AutoWashPro.BLL.Services
                 var customerName = booking.User.CustomerProfile?.FullName ?? "Quý khách";
 
                 // 3. Build HTML Template (Nghiệp vụ tốn CPU)
-                var emailHtml = BLL.Helpers.EmailTemplateBuilder.BuildBookingConfirmationEmail(
+                var emailHtml = EmailTemplateBuilder.BuildBookingConfirmationEmail(
                     booking,
                     booking.BookingDetails.ToList(),
                     customerName
@@ -687,7 +686,7 @@ namespace AutoWashPro.BLL.Services
                     var user = await _context.Users.Include(u => u.CustomerProfile).FirstOrDefaultAsync(u => u.UserId == userId);
                     if (user != null && !string.IsNullOrEmpty(user.Email))
                     {
-                        var emailHtml = BLL.Helpers.EmailTemplateBuilder.BuildBookingConfirmationEmail(booking, pendingDetails, user.CustomerProfile?.FullName ?? "Quý khách");
+                        var emailHtml = EmailTemplateBuilder.BuildBookingConfirmationEmail(booking, pendingDetails, user.CustomerProfile?.FullName ?? "Quý khách");
                         _ = Task.Run(() => _emailService.SendEmailAsync(user.Email, $"[SmartWash] Đặt lịch thành công - #{booking.BookingId}", emailHtml));
                     }
                 }

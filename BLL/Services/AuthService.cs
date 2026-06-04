@@ -152,6 +152,8 @@ namespace AutoWashPro.BLL.Services
             var loginInput = request.PhoneOrEmail.Trim().ToLower();
             var user = await _context.Users
                 .Include(u => u.CustomerProfile)
+                .Include(u => u.StaffProfile)
+                .Include(u => u.ManagerProfile)
                 .FirstOrDefaultAsync(u => u.PhoneNumber == loginInput || (u.Email != null && u.Email.ToLower() == loginInput));
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
@@ -174,7 +176,7 @@ namespace AutoWashPro.BLL.Services
             {
                 UserId = user.UserId,
                 PhoneNumber = user.PhoneNumber,
-                FullName = user.CustomerProfile?.FullName,
+                FullName = GetFullName(user),
                 Role = user.Role,
                 Token = token,
                 RefreshToken = refreshToken
@@ -230,6 +232,8 @@ namespace AutoWashPro.BLL.Services
             int userId = int.Parse(userIdClaim);
             var user = await _context.Users
                 .Include(u => u.CustomerProfile)
+                .Include(u => u.StaffProfile)
+                .Include(u => u.ManagerProfile)
                 .FirstOrDefaultAsync(u => u.UserId == userId);
 
             if (user == null || user.RefreshToken != request.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
@@ -245,7 +249,7 @@ namespace AutoWashPro.BLL.Services
             {
                 UserId = user.UserId,
                 PhoneNumber = user.PhoneNumber,
-                FullName = user.CustomerProfile?.FullName,
+                FullName = GetFullName(user),
                 Role = user.Role,
                 Token = newAccessToken,
                 RefreshToken = newRefreshToken
@@ -286,6 +290,20 @@ namespace AutoWashPro.BLL.Services
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
+        }
+
+        private static string GetFullName(User user)
+        {
+            return user.Role switch
+            {
+                UserRoles.Manager => user.ManagerProfile?.FullName ?? user.PhoneNumber,
+                UserRoles.Staff => user.StaffProfile?.FullName ?? user.PhoneNumber,
+                UserRoles.Customer => user.CustomerProfile?.FullName ?? user.PhoneNumber,
+                _ => user.CustomerProfile?.FullName
+                    ?? user.ManagerProfile?.FullName
+                    ?? user.StaffProfile?.FullName
+                    ?? user.PhoneNumber
+            };
         }
 
         private string GenerateRefreshToken()
