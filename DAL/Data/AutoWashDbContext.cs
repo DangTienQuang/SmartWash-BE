@@ -36,6 +36,15 @@ namespace AutoWashPro.DAL.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<Vehicle>()
+                .HasIndex(v => v.LicensePlate)
+                .IsUnique();
+
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Vehicle)
+                .WithMany()
+                .HasForeignKey(b => b.VehicleId)
+                .OnDelete(DeleteBehavior.SetNull);
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.PhoneNumber)
                 .IsUnique();
@@ -84,22 +93,22 @@ namespace AutoWashPro.DAL.Data
                 .HasForeignKey(bd => bd.ServiceId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<BookingDetail>()
-                .HasOne(bd => bd.ActualVehicleType)
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.ActualVehicleType)
                 .WithMany()
-                .HasForeignKey(bd => bd.ActualVehicleTypeId)
+                .HasForeignKey(b => b.ActualVehicleTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<BookingDetail>()
-                .HasOne(bd => bd.ProcessingLane)
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.ProcessingLane)
                 .WithMany(l => l.ProcessingBookings)
-                .HasForeignKey(bd => bd.ProcessingLaneId)
+                .HasForeignKey(b => b.ProcessingLaneId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            modelBuilder.Entity<BookingDetail>()
-                .HasOne(bd => bd.ProcessingStaff)
-                .WithMany(u => u.ProcessedBookingDetails)
-                .HasForeignKey(bd => bd.ProcessingStaffId)
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.ProcessingStaff)
+                .WithMany(u => u.ProcessedBookings)
+                .HasForeignKey(b => b.ProcessingStaffId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Booking>()
