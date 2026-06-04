@@ -64,8 +64,6 @@ namespace AutoWashPro.DAL.Entities
 
         public int? InvoiceId { get; set; }
 
-        public string? VehicleLicensePlate { get; set; }
-
         public Vehicle? Vehicle { get; set; }
 
         public Invoice? Invoice { get; set; }

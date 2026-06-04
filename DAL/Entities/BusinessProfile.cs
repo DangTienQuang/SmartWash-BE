@@ -32,14 +32,26 @@ namespace DAL.Entities
         public string ApprovalStatus { get; set; } = "Pending";
 
         public string? RejectionReason { get; set; }
-
         public int? ReviewedByUserId { get; set; }
+        [ForeignKey(nameof(ReviewedByUserId))]
+        public User? ReviewedByUser { get; set; }
 
         public DateTime? ReviewedAt { get; set; }
 
         public string BusinessLicenseFileUrl { get; set; } = null!;
 
         public string? AuthorizationLetterFileUrl { get; set; }
+        public decimal MonthlyCreditLimit { get; set; }
+
+        public decimal CurrentMonthUsage { get; set; }
+
+        public decimal DiscountPercent { get; set; }
+
+        public DateTime ContractStartDate { get; set; }
+
+        public DateTime ContractEndDate { get; set; }
+
+        public bool IsContractActive { get; set; }
 
         public User User { get; set; } = null!;
     }

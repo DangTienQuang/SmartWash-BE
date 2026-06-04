@@ -35,6 +35,9 @@ namespace AutoWashPro.DAL.Data
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<InvoiceItem> InvoiceItems { get; set; }
         public DbSet<BookingDocument> BookingDocuments { get; set; }
+        public DbSet<FleetVehicle> FleetVehicles { get; set; }
+        public DbSet<FleetImportBatch> FleetImportBatches { get; set; }
+        public DbSet<FleetImportError> FleetImportErrors { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -145,12 +148,6 @@ namespace AutoWashPro.DAL.Data
                 .WithMany()
                 .HasForeignKey(b => b.BusinessProfileId)
                 .OnDelete(DeleteBehavior.SetNull);
-            modelBuilder.Entity<BookingDetail>()
-                .HasOne(bd => bd.Vehicle)
-                .WithMany()
-                .HasForeignKey(bd => bd.VehicleLicensePlate)
-                .HasPrincipalKey(v => v.LicensePlate)
-                .OnDelete(DeleteBehavior.SetNull);
             modelBuilder.Entity<Invoice>()
                 .HasOne(i => i.Booking)
                 .WithMany()
@@ -169,6 +166,30 @@ namespace AutoWashPro.DAL.Data
                 .HasOne(d => d.Booking)
                 .WithMany()
                 .HasForeignKey(d => d.BookingId);
+            modelBuilder.Entity<BusinessProfile>()
+                .HasOne(bp => bp.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(bp => bp.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<FleetVehicle>()
+                .HasIndex(x => x.LicensePlate)
+                .IsUnique();
+            modelBuilder.Entity<FleetVehicle>()
+                .HasOne(x => x.BusinessProfile)
+                .WithMany()
+                .HasForeignKey(x => x.BusinessProfileId);
+            modelBuilder.Entity<FleetVehicle>()
+                .HasOne(x => x.VehicleType)
+                .WithMany()
+                .HasForeignKey(x => x.VehicleTypeId);
+            modelBuilder.Entity<FleetImportBatch>()
+                .HasOne(x => x.BusinessProfile)
+                .WithMany()
+                .HasForeignKey(x => x.BusinessProfileId);
+            modelBuilder.Entity<FleetImportError>()
+                .HasOne(x => x.FleetImportBatch)
+                .WithMany()
+                .HasForeignKey(x => x.FleetImportBatchId);
         }
     }
 }
