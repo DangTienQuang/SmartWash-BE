@@ -9,6 +9,7 @@ namespace AutoWashPro.BLL.Constants
     public static class UserStatuses
     {
         public const string Active = "Active";
+        public const string Pending = "Pending";
         public const string Blocked = "Blocked";
     }
 

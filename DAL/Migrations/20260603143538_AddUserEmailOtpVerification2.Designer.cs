@@ -3,6 +3,7 @@ using System;
 using AutoWashPro.DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(AutoWashDbContext))]
-    partial class AutoWashDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260603143538_AddUserEmailOtpVerification2")]
+    partial class AddUserEmailOtpVerification2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -155,12 +158,21 @@ namespace DAL.Migrations
                     b.Property<int>("CurrentYearTierPoints")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<int?>("LastBirthdayGiftYear")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("LastVisitDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("LastWinbackSentDate")
                         .HasColumnType("datetime(6)");
 
                     b.Property<int>("PromotionPoint")
@@ -749,13 +761,30 @@ namespace DAL.Migrations
                     b.Property<DateTime>("ExpiryDate")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("longtext");
+
                     b.Property<int>("MaxUsages")
                         .HasColumnType("int");
 
                     b.Property<int>("PointsRequired")
                         .HasColumnType("int");
 
+                    b.Property<int?>("RequiredTierId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan?>("ValidEndTime")
+                        .HasColumnType("time(6)");
+
+                    b.Property<TimeSpan?>("ValidStartTime")
+                        .HasColumnType("time(6)");
+
+                    b.Property<int>("VoucherType")
+                        .HasColumnType("int");
+
                     b.HasKey("VoucherId");
+
+                    b.HasIndex("RequiredTierId");
 
                     b.ToTable("Vouchers");
                 });
@@ -1093,6 +1122,15 @@ namespace DAL.Migrations
                     b.Navigation("User");
 
                     b.Navigation("VehicleType");
+                });
+
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.Voucher", b =>
+                {
+                    b.HasOne("AutoWashPro.DAL.Entities.Tier", "RequiredTier")
+                        .WithMany()
+                        .HasForeignKey("RequiredTierId");
+
+                    b.Navigation("RequiredTier");
                 });
 
             modelBuilder.Entity("AutoWashPro.DAL.Entities.Wallet", b =>
