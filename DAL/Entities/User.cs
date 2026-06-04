@@ -37,7 +37,10 @@ namespace AutoWashPro.DAL.Entities
         public CustomerProfile CustomerProfile { get; set; } = null!;
         public StaffProfile? StaffProfile { get; set; }
         public ManagerProfile? ManagerProfile { get; set; }
+        public EmployeeProfile? EmployeeProfile { get; set; }
         public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
         public ICollection<AIConversationLog> AIConversationLogs { get; set; }
+        public ICollection<StaffLaneAssignment> LaneAssignments { get; set; } = new List<StaffLaneAssignment>();
+        public ICollection<Booking> ProcessedBookings { get; set; } = new List<Booking>();
     }
 }

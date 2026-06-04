@@ -33,11 +33,24 @@ namespace AutoWashPro.DAL.Data
         public DbSet<OvertimeRequest> OvertimeRequests { get; set; }
         public DbSet<ShiftSwapRequest> ShiftSwapRequests { get; set; }
         public DbSet<CarModel> CarModels { get; set; }
+        public DbSet<Branch> Branches { get; set; }
+        public DbSet<Lane> Lanes { get; set; }
+        public DbSet<StaffLaneAssignment> StaffLaneAssignments { get; set; }
+        public DbSet<EmployeeProfile> EmployeeProfiles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<Vehicle>()
+                .HasIndex(v => v.LicensePlate)
+                .IsUnique();
+
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Vehicle)
+                .WithMany()
+                .HasForeignKey(b => b.VehicleId)
+                .OnDelete(DeleteBehavior.SetNull);
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.PhoneNumber)
                 .IsUnique();
@@ -90,10 +103,31 @@ namespace AutoWashPro.DAL.Data
                 .WithMany()
                 .HasForeignKey(s => s.ToAssignmentId)
                 .OnDelete(DeleteBehavior.Restrict);
+                .HasOne(u => u.EmployeeProfile)
+                .WithOne(e => e.User)
+                .HasForeignKey<EmployeeProfile>(e => e.EmployeeId);
 
             modelBuilder.Entity<DailySlotCapacity>()
-                .HasIndex(d => new { d.SlotId, d.Date })
+                .HasIndex(d => new { d.SlotId, d.Date, d.BranchId })
                 .IsUnique();
+
+            modelBuilder.Entity<ServicePrice>()
+                .HasOne(sp => sp.Branch)
+                .WithMany()
+                .HasForeignKey(sp => sp.BranchId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TimeSlot>()
+                .HasOne(ts => ts.Branch)
+                .WithMany()
+                .HasForeignKey(ts => ts.BranchId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DailySlotCapacity>()
+                .HasOne(dsc => dsc.Branch)
+                .WithMany()
+                .HasForeignKey(dsc => dsc.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<BookingDetail>()
                 .HasOne(bd => bd.Booking)
@@ -107,11 +141,53 @@ namespace AutoWashPro.DAL.Data
                 .HasForeignKey(bd => bd.ServiceId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<BookingDetail>()
-                .HasOne(bd => bd.ActualVehicleType)
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.ActualVehicleType)
                 .WithMany()
-                .HasForeignKey(bd => bd.ActualVehicleTypeId)
+                .HasForeignKey(b => b.ActualVehicleTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.ProcessingLane)
+                .WithMany(l => l.ProcessingBookings)
+                .HasForeignKey(b => b.ProcessingLaneId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.ProcessingStaff)
+                .WithMany(u => u.ProcessedBookings)
+                .HasForeignKey(b => b.ProcessingStaffId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Branch)
+                .WithMany(br => br.Bookings)
+                .HasForeignKey(b => b.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StaffLaneAssignment>()
+                .HasOne(sla => sla.Staff)
+                .WithMany(u => u.LaneAssignments)
+                .HasForeignKey(sla => sla.StaffId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StaffLaneAssignment>()
+                .HasOne(sla => sla.Lane)
+                .WithMany(l => l.StaffAssignments)
+                .HasForeignKey(sla => sla.LaneId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EmployeeProfile>()
+                .HasOne(e => e.Branch)
+                .WithMany(b => b.Employees)
+                .HasForeignKey(e => e.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Lane>()
+                .HasOne(l => l.Branch)
+                .WithMany(b => b.Lanes)
+                .HasForeignKey(l => l.BranchId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

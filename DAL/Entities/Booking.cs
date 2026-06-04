@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -22,6 +23,38 @@ namespace AutoWashPro.DAL.Entities
         [Required]
         [MaxLength(20)]
         public string Status { get; set; } = "Pending";
+
+        [Required]
+        public int BranchId { get; set; }
+
+        [ForeignKey("BranchId")]
+        public Branch Branch { get; set; } = null!;
+
+        // Added from BookingDetail
+        public int? VehicleId { get; set; }
+        [ForeignKey("VehicleId")]
+        public Vehicle? Vehicle { get; set; }
+
+        [Required]
+        [MaxLength(20)]
+        public string LicensePlate { get; set; } = null!;
+
+        public int CapacityWeight { get; set; }
+        public VehicleCondition VehicleCondition { get; set; } = VehicleCondition.Clean;
+
+        public int? ActualVehicleTypeId { get; set; }
+        [ForeignKey("ActualVehicleTypeId")]
+        public VehicleType? ActualVehicleType { get; set; }
+
+        public decimal MismatchSurcharge { get; set; } = 0;
+
+        public int? ProcessingLaneId { get; set; }
+        [ForeignKey("ProcessingLaneId")]
+        public Lane? ProcessingLane { get; set; }
+
+        public int? ProcessingStaffId { get; set; }
+        [ForeignKey("ProcessingStaffId")]
+        public User? ProcessingStaff { get; set; }
 
         public ICollection<BookingDetail> BookingDetails { get; set; } = new List<BookingDetail>();
 
