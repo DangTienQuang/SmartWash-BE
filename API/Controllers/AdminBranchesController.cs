@@ -1,6 +1,5 @@
 using AutoWashPro.BLL.DTOs;
 using AutoWashPro.BLL.Services;
-using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -8,8 +7,8 @@ using System.Threading.Tasks;
 namespace AutoWashPro.API.Controllers
 {
     [ApiController]
-    [Route("api/v1/branches")]
-    [Authorize]
+    [Route("api/v1/admin/branches")]
+    [Authorize(Roles = "Admin")]
     public class AdminBranchesController : ControllerBase
     {
         private readonly IBranchService _branchService;
@@ -20,7 +19,6 @@ namespace AutoWashPro.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Customer, Admin")]
         public async Task<IActionResult> GetAllBranches()
         {
             var branches = await _branchService.GetAllBranchesAsync();
@@ -28,7 +26,6 @@ namespace AutoWashPro.API.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Customer, Admin")]
         public async Task<IActionResult> GetBranch(int id)
         {
             var branch = await _branchService.GetBranchByIdAsync(id);
@@ -36,7 +33,6 @@ namespace AutoWashPro.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateBranch([FromBody] CreateBranchDTO dto)
         {
             var branch = await _branchService.CreateBranchAsync(dto);
@@ -44,7 +40,6 @@ namespace AutoWashPro.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateBranch(int id, [FromBody] UpdateBranchDTO dto)
         {
             var branch = await _branchService.UpdateBranchAsync(id, dto);
