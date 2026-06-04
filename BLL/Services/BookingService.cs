@@ -60,7 +60,8 @@ namespace AutoWashPro.BLL.Services
                 {
                     var servicePrice = await _context.ServicePrices
                         .FirstOrDefaultAsync(sp => sp.ServiceId == item.ServiceId
-                                                && sp.VehicleTypeId == item.VehicleTypeId);
+                                                && sp.VehicleTypeId == item.VehicleTypeId
+                                                && sp.BranchId == request.BranchId);
 
                     if (servicePrice != null)
                     {
@@ -80,11 +81,13 @@ namespace AutoWashPro.BLL.Services
                 }
             }
 
-            var allSlots = await _context.TimeSlots.OrderBy(s => s.StartTime).ToListAsync();
+            var allSlots = await _context.TimeSlots
+                .Where(s => s.BranchId == request.BranchId)
+                .OrderBy(s => s.StartTime).ToListAsync();
             var response = new List<TimeSlotResponseDTO>();
 
             var dailyCapacities = await _context.DailySlotCapacities
-                .Where(dc => dc.Date == request.TargetDate.Date)
+                .Where(dc => dc.BranchId == request.BranchId && dc.Date == request.TargetDate.Date)
                 .ToDictionaryAsync(dc => dc.SlotId, dc => dc.BookedWeight);
 
             bool isVip = userProfile.Tier.TierName.ToLower() == "gold" || userProfile.Tier.TierName.ToLower() == "platinum";
@@ -239,6 +242,7 @@ namespace AutoWashPro.BLL.Services
 
         public async Task<BookingResponseDTO> UpdateBookingStatusByLicensePlateAsync(string licensePlate, string newStatus)
         {
+            // 1. KIỂM TRA DỮ LIỆU ĐẦU VÀO
             var allowedStatuses = new[] { "Pending", "CheckedIn", "Completed", "Cancelled", "Delayed", "CancelledBySystem" };
             if (!allowedStatuses.Contains(newStatus))
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException("Trạng thái không hợp lệ.");
@@ -247,6 +251,8 @@ namespace AutoWashPro.BLL.Services
             if (string.IsNullOrEmpty(normalizedPlate))
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException("Biển số xe không hợp lệ.");
 
+            // 2. TÌM KIẾM DIỆN RỘNG (Tránh hoàn toàn lỗi lệch giờ UTC vs VN)
+            // Lấy dư ra 24h trước và sau để đảm bảo không bỏ sót bất kỳ đơn nào do lệch timezone
             var startTime = DateTime.UtcNow.AddHours(-24);
             var endTime = DateTime.UtcNow.AddHours(24);
 
@@ -256,6 +262,7 @@ namespace AutoWashPro.BLL.Services
                 .Where(b => b.ScheduledTime >= startTime && b.ScheduledTime <= endTime)
                 .ToListAsync();
 
+            // 3. LỌC CHÍNH XÁC BIỂN SỐ (In-memory)
             var matches = query.Where(b =>
                 b.BookingDetails.Any(bd => NormalizeLicensePlate(bd.LicensePlate) == normalizedPlate)
             ).ToList();
@@ -265,6 +272,7 @@ namespace AutoWashPro.BLL.Services
                 throw new AutoWashPro.BLL.Exceptions.NotFoundException($"Không tìm thấy lịch hẹn nào cho xe {licensePlate} trong khoảng thời gian gần đây.");
             }
 
+            // 4. LỌC CHÍNH XÁC NGÀY HÔM NAY (Giờ Việt Nam)
             var todayInVN = DateTime.UtcNow.ToVnTime().Date;
             var todaysBookings = matches.Where(b => b.ScheduledTime.ToVnTime().Date == todayInVN).ToList();
 
@@ -280,6 +288,7 @@ namespace AutoWashPro.BLL.Services
 
             var booking = todaysBookings.First();
 
+            // 5. KIỂM TRA LOGIC CHUYỂN TRẠNG THÁI (Báo lỗi 400 rõ ràng thay vì 404 Not Found)
             if (booking.Status == newStatus)
             {
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Trạng thái hiện tại của đơn hàng đã là '{newStatus}' rồi.");
@@ -295,6 +304,7 @@ namespace AutoWashPro.BLL.Services
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Không thể chuyển trạng thái từ '{booking.Status}' sang '{newStatus}'.");
             }
 
+            // 6. THỰC THI CẬP NHẬT (Tận dụng logic của hàm UpdateBookingStatusAsync)
             var isUpdated = await UpdateBookingStatusAsync(booking.BookingId, newStatus);
 
             if (!isUpdated)
@@ -302,6 +312,7 @@ namespace AutoWashPro.BLL.Services
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException("Cập nhật trạng thái thất bại do hệ thống.");
             }
 
+            // 7. TRẢ VỀ DTO
             return new BookingResponseDTO
             {
                 BookingId = booking.BookingId,
@@ -353,7 +364,7 @@ namespace AutoWashPro.BLL.Services
             return true;
         }
 
-        public async Task<CompatibilityDTO> ValidateBookingCompatibilityAsync(int userId, int slotId, DateTime targetDate, List<VehicleBookingItemDTO> vehicles)
+        public async Task<CompatibilityDTO> ValidateBookingCompatibilityAsync(int userId, int branchId, int slotId, DateTime targetDate, List<VehicleBookingItemDTO> vehicles)
         {
             if (vehicles == null || vehicles.Count == 0)
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException("Giỏ hàng không có xe nào.");
@@ -365,7 +376,7 @@ namespace AutoWashPro.BLL.Services
             if (duplicatePlates)
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException("Danh sách xe có chứa biển số bị trùng lặp.");
 
-            var slot = await _context.TimeSlots.FindAsync(slotId);
+            var slot = await _context.TimeSlots.FirstOrDefaultAsync(ts => ts.SlotId == slotId && ts.BranchId == branchId);
             if (slot == null)
                 throw new AutoWashPro.BLL.Exceptions.NotFoundException("Khung giờ không hợp lệ.");
 
@@ -405,7 +416,7 @@ namespace AutoWashPro.BLL.Services
                 if (service == null || !service.IsActive)
                     throw new AutoWashPro.BLL.Exceptions.NotFoundException($"Dịch vụ cho xe {item.LicensePlate} không tồn tại hoặc đã ngừng kinh doanh.");
 
-                var servicePrice = await _context.ServicePrices.FirstOrDefaultAsync(sp => sp.ServiceId == item.ServiceId && sp.VehicleTypeId == vehicle.VehicleTypeId);
+                var servicePrice = await _context.ServicePrices.FirstOrDefaultAsync(sp => sp.ServiceId == item.ServiceId && sp.VehicleTypeId == vehicle.VehicleTypeId && sp.BranchId == branchId);
                 if (servicePrice == null)
                     throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Dịch vụ này chưa hỗ trợ cho loại xe {item.LicensePlate}.");
 
@@ -413,7 +424,7 @@ namespace AutoWashPro.BLL.Services
                 totalCapacityWeight += actualCapacityWeight;
             }
 
-            var dailyCapacity = await _context.DailySlotCapacities.FirstOrDefaultAsync(dc => dc.SlotId == slot.SlotId && dc.Date == targetDateTime.Date);
+            var dailyCapacity = await _context.DailySlotCapacities.FirstOrDefaultAsync(dc => dc.SlotId == slot.SlotId && dc.BranchId == branchId && dc.Date == targetDateTime.Date);
             int bookedWeight = dailyCapacity?.BookedWeight ?? 0;
             int remainingCapacity = slot.MaxCapacity - bookedWeight;
 
@@ -438,15 +449,62 @@ namespace AutoWashPro.BLL.Services
                 MaxCapacityOfSlot = slot.MaxCapacity
             };
         }
+        // File: BLL/Services/BookingService.cs
 
+        public async Task<bool> SendBookingConfirmationEmailAsync(int userId, int bookingId)
+        {
+            try
+            {
+                // 1. Lấy thông tin Booking và User. 
+                // Phải Include đầy đủ vì context này chạy hoàn toàn độc lập với luồng CreateBooking
+                var booking = await _context.Bookings
+                    .Include(b => b.BookingDetails)
+                        .ThenInclude(bd => bd.Service)
+                    .Include(b => b.User)
+                        .ThenInclude(u => u.CustomerProfile)
+                    .FirstOrDefaultAsync(b => b.BookingId == bookingId && b.UserId == userId);
+
+                // 2. Validate an toàn
+                if (booking == null || string.IsNullOrEmpty(booking.User?.Email))
+                {
+                    Console.WriteLine($"[Cảnh báo] Không thể gửi mail: Không tìm thấy đơn #{bookingId} hoặc User không có email.");
+                    return false;
+                }
+
+                var customerName = booking.User.CustomerProfile?.FullName ?? "Quý khách";
+
+                // 3. Build HTML Template (Nghiệp vụ tốn CPU)
+                var emailHtml = BLL.Helpers.EmailTemplateBuilder.BuildBookingConfirmationEmail(
+                    booking,
+                    booking.BookingDetails.ToList(),
+                    customerName
+                );
+
+                // 4. Gọi Service Gửi mail
+                await _emailService.SendEmailAsync(
+                    booking.User.Email,
+                    $"[SmartWash] Đặt lịch thành công - #{booking.BookingId}",
+                    emailHtml
+                );
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // Trong Background Task, KHÔNG ĐƯỢC throw exception làm crash app. 
+                // Chỉ ghi Log để Developer trace lỗi.
+                Console.WriteLine($"[Lỗi Background Task - Email] Booking #{bookingId}: {ex.Message}");
+                return false;
+            }
+        }
         public async Task<CompatibilityDTO> CheckCompatibilityAsync(int userId, CheckCompatibilityRequestDTO request)
         {
-            return await ValidateBookingCompatibilityAsync(userId, request.SlotId, request.TargetDate, request.Vehicles);
+            return await ValidateBookingCompatibilityAsync(userId, request.BranchId, request.SlotId, request.TargetDate, request.Vehicles);
         }
 
         public async Task<BookingResponseDTO> CreateBookingAsync(int userId, CreateBookingDTO request)
         {
-            var compatibility = await ValidateBookingCompatibilityAsync(userId, request.SlotId, request.ScheduledDate, request.Vehicles.Select(v => new VehicleBookingItemDTO { LicensePlate = v.LicensePlate, ServiceId = v.ServiceId }).ToList());
+            var compatibility = await ValidateBookingCompatibilityAsync(userId, request.BranchId, request.SlotId, request.ScheduledDate, request.Vehicles.Select(v => new VehicleBookingItemDTO { LicensePlate = v.LicensePlate, ServiceId = v.ServiceId }).ToList());
 
             if (!compatibility.IsCompatible)
             {
@@ -456,14 +514,32 @@ namespace AutoWashPro.BLL.Services
             var slot = await _context.TimeSlots.FindAsync(request.SlotId);
             var targetDateTime = request.ScheduledDate.Date.Add(slot.StartTime);
 
+            // --- THAY THẾ TOÀN BỘ ĐOẠN VÒNG LẶP CŨ BẰNG ĐOẠN NÀY ---
+
             decimal totalOriginalPrice = 0;
             int totalCapacityWeight = compatibility.TotalCapacityWeight;
             var pendingDetails = new List<BookingDetail>();
 
+            // 1. Kéo toàn bộ xe của User trong 1 lần gọi DB
+            var requestedPlates = request.Vehicles.Select(v => v.LicensePlate).ToList();
+            var userVehicles = await _context.Vehicles
+                .Include(v => v.VehicleType)
+                .Where(v => requestedPlates.Contains(v.LicensePlate) && v.UserId == userId && !v.IsDeleted)
+                .ToListAsync();
+
+            // 2. Kéo toàn bộ giá dịch vụ liên quan trong 1 lần gọi DB
+            var requestedServiceIds = request.Vehicles.Select(v => v.ServiceId).Distinct().ToList();
+            var servicePrices = await _context.ServicePrices
+                .Where(sp => requestedServiceIds.Contains(sp.ServiceId))
+                .ToListAsync();
+
+            // 3. Vòng lặp bây giờ chỉ xử lý trên RAM (Cực kỳ nhanh)
             foreach (var item in request.Vehicles)
             {
-                var vehicle = await _context.Vehicles.Include(v => v.VehicleType).FirstOrDefaultAsync(v => v.LicensePlate == item.LicensePlate && v.UserId == userId && !v.IsDeleted);
-                var servicePrice = await _context.ServicePrices.FirstOrDefaultAsync(sp => sp.ServiceId == item.ServiceId && sp.VehicleTypeId == vehicle.VehicleTypeId);
+                var vehicle = userVehicles.FirstOrDefault(v => v.LicensePlate == item.LicensePlate);
+                // Lưu ý: Đã validate ở trên nên vehicle chắc chắn không null
+
+                var servicePrice = servicePrices.FirstOrDefault(sp => sp.ServiceId == item.ServiceId && sp.VehicleTypeId == vehicle.VehicleTypeId);
 
                 var actualCapacityWeight = servicePrice.CapacityWeight > 0 ? servicePrice.CapacityWeight : vehicle.VehicleType.BaseWeight;
 
@@ -480,14 +556,15 @@ namespace AutoWashPro.BLL.Services
             }
 
             // PHASE 3: Capacity AI
-            using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
 
-            var dailyCapacity = await _context.DailySlotCapacities.FirstOrDefaultAsync(dc => dc.SlotId == slot.SlotId && dc.Date == targetDateTime.Date);
+            var dailyCapacity = await _context.DailySlotCapacities.FirstOrDefaultAsync(dc => dc.SlotId == slot.SlotId && dc.BranchId == request.BranchId && dc.Date == targetDateTime.Date);
             if (dailyCapacity == null)
             {
                 dailyCapacity = new DailySlotCapacity
                 {
                     SlotId = slot.SlotId,
+                    BranchId = request.BranchId,
                     Date = targetDateTime.Date,
                     BookedWeight = 0
                 };
@@ -499,7 +576,7 @@ namespace AutoWashPro.BLL.Services
                 catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("Duplicate entry") == true)
                 {
                     _context.Entry(dailyCapacity).State = EntityState.Detached;
-                    dailyCapacity = await _context.DailySlotCapacities.FirstAsync(dc => dc.SlotId == slot.SlotId && dc.Date == targetDateTime.Date);
+                    dailyCapacity = await _context.DailySlotCapacities.FirstAsync(dc => dc.SlotId == slot.SlotId && dc.BranchId == request.BranchId && dc.Date == targetDateTime.Date);
                 }
             }
             else
@@ -513,7 +590,7 @@ namespace AutoWashPro.BLL.Services
 
             // PHASE 4: Financial Math
             var (voucherDiscount, pointDiscount, pointsUsed, finalAmount, userVoucher) =
-                await CalculateBookingPricingAsync(userId, totalOriginalPrice, request.VoucherId, request.PointsToUse);
+                await CalculateBookingPricingAsync(userId, totalOriginalPrice, request.VoucherId, request.PointsToUse, targetDateTime);
 
             // PHASE 5: Transaction
             var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
@@ -561,6 +638,7 @@ namespace AutoWashPro.BLL.Services
                 var booking = new Booking
                 {
                     UserId = userId,
+                    BranchId = request.BranchId,
                     ScheduledTime = targetDateTime,
                     Status = "Pending",
                     OriginalPrice = totalOriginalPrice,
@@ -588,7 +666,7 @@ namespace AutoWashPro.BLL.Services
                     if (user != null && !string.IsNullOrEmpty(user.Email))
                     {
                         var emailHtml = BLL.Helpers.EmailTemplateBuilder.BuildBookingConfirmationEmail(booking, pendingDetails, user.CustomerProfile?.FullName ?? "Quý khách");
-                        await _emailService.SendEmailAsync(user.Email, $"[SmartWash] Đặt lịch thành công - #{booking.BookingId}", emailHtml);
+                        _ = Task.Run(() => _emailService.SendEmailAsync(user.Email, $"[SmartWash] Đặt lịch thành công - #{booking.BookingId}", emailHtml));
                     }
                 }
                 catch (Exception ex)
@@ -653,11 +731,11 @@ namespace AutoWashPro.BLL.Services
             {
                 booking.Status = "Cancelled";
 
-                var slot = await _context.TimeSlots.FirstOrDefaultAsync(s => s.StartTime == booking.ScheduledTime.TimeOfDay);
+                var slot = await _context.TimeSlots.FirstOrDefaultAsync(s => s.BranchId == booking.BranchId && s.StartTime == booking.ScheduledTime.TimeOfDay);
                 if (slot != null)
                 {
                     var dailyCapacity = await _context.DailySlotCapacities
-                        .FirstOrDefaultAsync(dc => dc.SlotId == slot.SlotId && dc.Date == booking.ScheduledTime.Date);
+                        .FirstOrDefaultAsync(dc => dc.SlotId == slot.SlotId && dc.BranchId == booking.BranchId && dc.Date == booking.ScheduledTime.Date);
 
                     if (dailyCapacity != null && dailyCapacity.BookedWeight > 0)
                     {
@@ -737,7 +815,7 @@ namespace AutoWashPro.BLL.Services
         }
 
         private async Task<(decimal voucherDiscount, decimal pointDiscount, int pointsUsed, decimal finalAmount, UserVoucher? userVoucher)>
-            CalculateBookingPricingAsync(int userId, decimal originalPrice, int? voucherId, int pointsToUseRequest)
+            CalculateBookingPricingAsync(int userId, decimal originalPrice, int? voucherId, int pointsToUseRequest, DateTime scheduledTime)
         {
             decimal voucherDiscount = 0;
             UserVoucher? userVoucher = null;
@@ -751,6 +829,33 @@ namespace AutoWashPro.BLL.Services
                 if (userVoucher == null) throw new AutoWashPro.BLL.Exceptions.NotFoundException("Bạn không sở hữu Voucher này.");
                 if (userVoucher.IsUsed) throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher này đã được sử dụng.");
                 if (userVoucher.Voucher.ExpiryDate < DateTime.UtcNow) throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher này đã hết hạn.");
+
+                if (userVoucher.Voucher.VoucherType == AutoWashPro.DAL.Enums.VoucherType.PhysicalGift)
+                {
+                    throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher quà tặng hiện vật không thể dùng để trừ tiền hóa đơn.");
+                }
+
+                if (userVoucher.Voucher.ValidStartTime.HasValue && userVoucher.Voucher.ValidEndTime.HasValue)
+                {
+                    var timeOfDay = scheduledTime.ToVnTime().TimeOfDay;
+                    var startTime = userVoucher.Voucher.ValidStartTime.Value;
+                    var endTime = userVoucher.Voucher.ValidEndTime.Value;
+
+                    bool isValidTime = false;
+                    if (startTime <= endTime)
+                    {
+                        isValidTime = timeOfDay >= startTime && timeOfDay <= endTime;
+                    }
+                    else
+                    {
+                        isValidTime = timeOfDay >= startTime || timeOfDay <= endTime;
+                    }
+
+                    if (!isValidTime)
+                    {
+                        throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Voucher Happy Hour này chỉ áp dụng trong khung giờ từ {startTime:hh\\:mm} đến {endTime:hh\\:mm}.");
+                    }
+                }
 
                 voucherDiscount = Math.Min(userVoucher.Voucher.DiscountAmount, originalPrice);
             }
@@ -889,10 +994,10 @@ namespace AutoWashPro.BLL.Services
             await _context.SaveChangesAsync();
         }
 
-        private async Task<decimal> GetPriceFromDb(int serviceId, int vehicleTypeId, VehicleCondition condition)
+        private async Task<decimal> GetPriceFromDb(int serviceId, int vehicleTypeId, VehicleCondition condition, int branchId)
         {
             var servicePrice = await _context.ServicePrices
-                .FirstOrDefaultAsync(sp => sp.ServiceId == serviceId && sp.VehicleTypeId == vehicleTypeId);
+                .FirstOrDefaultAsync(sp => sp.ServiceId == serviceId && sp.VehicleTypeId == vehicleTypeId && sp.BranchId == branchId);
 
             if (servicePrice == null) return 0;
 
@@ -905,13 +1010,13 @@ namespace AutoWashPro.BLL.Services
 
         public async Task ReportMismatchAsync(int detailId, VehicleCondition condition, int actualTypeId)
         {
-            var detail = await _context.BookingDetails.FindAsync(detailId);
+            var detail = await _context.BookingDetails.Include(d => d.Booking).FirstOrDefaultAsync(d => d.DetailId == detailId);
             if (detail == null) throw new AutoWashPro.BLL.Exceptions.NotFoundException("Không tìm thấy chi tiết xe.");
 
             detail.VehicleCondition = condition;
             detail.ActualVehicleTypeId = actualTypeId;
 
-            decimal newPrice = await GetPriceFromDb(detail.ServiceId, actualTypeId, condition);
+            decimal newPrice = await GetPriceFromDb(detail.ServiceId, actualTypeId, condition, detail.Booking.BranchId);
 
             if (newPrice > detail.Price)
             {
@@ -959,7 +1064,7 @@ namespace AutoWashPro.BLL.Services
                 if (service == null || !service.IsActive)
                     throw new AutoWashPro.BLL.Exceptions.NotFoundException($"Dịch vụ cho xe {item.LicensePlate} không tồn tại hoặc đã ngừng kinh doanh.");
 
-                var servicePrice = await _context.ServicePrices.FirstOrDefaultAsync(sp => sp.ServiceId == item.ServiceId && sp.VehicleTypeId == vehicle.VehicleTypeId);
+                var servicePrice = await _context.ServicePrices.FirstOrDefaultAsync(sp => sp.ServiceId == item.ServiceId && sp.VehicleTypeId == vehicle.VehicleTypeId && sp.BranchId == request.BranchId);
                 if (servicePrice == null)
                     throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Dịch vụ này chưa hỗ trợ cho loại xe {item.LicensePlate}.");
 
@@ -981,19 +1086,20 @@ namespace AutoWashPro.BLL.Services
             // Find current time slot to update capacity
             var timeOfDay = targetDateTime.TimeOfDay;
             var slot = await _context.TimeSlots
-                .Where(s => s.StartTime <= timeOfDay && s.EndTime >= timeOfDay)
+                .Where(s => s.BranchId == 1 && s.StartTime <= timeOfDay && s.EndTime >= timeOfDay) // Hardcode BranchId = 1 temporarily for walk-ins
                 .FirstOrDefaultAsync();
 
-            using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
 
             if (slot != null)
             {
-                var dailyCapacity = await _context.DailySlotCapacities.FirstOrDefaultAsync(dc => dc.SlotId == slot.SlotId && dc.Date == targetDateTime.Date);
+                var dailyCapacity = await _context.DailySlotCapacities.FirstOrDefaultAsync(dc => dc.SlotId == slot.SlotId && dc.BranchId == slot.BranchId && dc.Date == targetDateTime.Date);
                 if (dailyCapacity == null)
                 {
                     dailyCapacity = new DailySlotCapacity
                     {
                         SlotId = slot.SlotId,
+                        BranchId = slot.BranchId,
                         Date = targetDateTime.Date,
                         BookedWeight = 0
                     };
@@ -1002,7 +1108,7 @@ namespace AutoWashPro.BLL.Services
                     catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("Duplicate entry") == true)
                     {
                         _context.Entry(dailyCapacity).State = EntityState.Detached;
-                        dailyCapacity = await _context.DailySlotCapacities.FirstAsync(dc => dc.SlotId == slot.SlotId && dc.Date == targetDateTime.Date);
+                        dailyCapacity = await _context.DailySlotCapacities.FirstAsync(dc => dc.SlotId == slot.SlotId && dc.BranchId == slot.BranchId && dc.Date == targetDateTime.Date);
                     }
                 }
 
@@ -1013,7 +1119,7 @@ namespace AutoWashPro.BLL.Services
             }
 
             var (voucherDiscount, pointDiscount, pointsUsed, finalAmount, userVoucher) =
-                await CalculateBookingPricingAsync(customerUserId, totalOriginalPrice, request.VoucherId, request.PointsToUse);
+                await CalculateBookingPricingAsync(customerUserId, totalOriginalPrice, request.VoucherId, request.PointsToUse, targetDateTime);
 
             var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == customerUserId);
             if (wallet == null || wallet.Balance < finalAmount)
@@ -1050,6 +1156,7 @@ namespace AutoWashPro.BLL.Services
                 var booking = new Booking
                 {
                     UserId = customerUserId,
+                    BranchId = request.BranchId,
                     ScheduledTime = targetDateTime,
                     Status = "CheckedIn", // Walk-ins go straight to CheckedIn
                     OriginalPrice = totalOriginalPrice,
@@ -1116,7 +1223,7 @@ namespace AutoWashPro.BLL.Services
             var bookings = await query.ToListAsync();
             if (!bookings.Any()) return;
 
-            using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
             try
             {
                 foreach (var booking in bookings)
@@ -1138,11 +1245,11 @@ namespace AutoWashPro.BLL.Services
 
                         if (booking.User != null && !string.IsNullOrEmpty(booking.User.Email))
                         {
-                            _ = _emailService.SendEmailAsync(
+                            _ = Task.Run(() => _emailService.SendEmailAsync(
                                 booking.User.Email,
                                 "AutoWashPro - Thông báo hủy lịch do sự cố",
                                 $"Kính chào quý khách,<br/><br/>Chúng tôi rất tiếc phải thông báo lịch hẹn của quý khách vào lúc {booking.ScheduledTime:dd/MM/yyyy HH:mm} đã bị hủy do sự cố bất khả kháng.<br/>Lý do: {request.Reason}<br/><br/>Chúng tôi đã hoàn lại toàn bộ số tiền <b>{booking.FinalAmount:N0}đ</b> và điểm tích lũy (nếu có) vào ví của quý khách.<br/>Đồng thời, để tạ lỗi, chúng tôi đã gửi tặng quý khách 1 Voucher giảm giá 30,000đ (có hạn 7 ngày) vào tài khoản.<br/><br/>Trân trọng,<br/>AutoWashPro"
-                            );
+                            ));
                         }
                     }
                 }
