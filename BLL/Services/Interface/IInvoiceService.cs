@@ -9,6 +9,6 @@ namespace BLL.Services.Interface
 {
     public interface IInvoiceService
     {
-        Task<InvoiceResponseDTO> GenerateInvoiceAsync(CreateInvoiceDTO dto);
+        //Task<InvoiceResponseDTO> GenerateInvoiceAsync(CreateInvoiceDTO dto);
     }
 }

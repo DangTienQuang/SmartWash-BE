@@ -145,22 +145,22 @@ namespace API.Controllers
             });
         }
 
-        [Authorize(Roles = "Business,Staff")]
-        [HttpPost("staff/generate-invoice")]
-        public async Task<IActionResult> GenerateInvoice([FromBody] CreateInvoiceDTO dto)
-        {
-            if (dto == null)
-                throw new BadRequestException("Invoice data is required.");
+        //[Authorize(Roles = "Business,Staff")]
+        //[HttpPost("staff/generate-invoice")]
+        //public async Task<IActionResult> GenerateInvoice([FromBody] CreateInvoiceDTO dto)
+        //{
+        //    if (dto == null)
+        //        throw new BadRequestException("Invoice data is required.");
 
-            var result = await _invoiceService.GenerateInvoiceAsync(dto);
+        //    var result = await _invoiceService.GenerateInvoiceAsync(dto);
 
-            return Ok(new
-            {
-                statusCode = 200,
-                message = "Invoice generated successfully.",
-                data = result
-            });
-        }
+        //    return Ok(new
+        //    {
+        //        statusCode = 200,
+        //        message = "Invoice generated successfully.",
+        //        data = result
+        //    });
+        //}
 
         [Authorize(Roles = "Staff,Manager")]
         [HttpPost("staff/review-application")]
