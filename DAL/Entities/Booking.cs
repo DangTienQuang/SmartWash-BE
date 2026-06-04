@@ -1,3 +1,4 @@
+using DAL.Entities;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -33,7 +34,12 @@ namespace AutoWashPro.DAL.Entities
 
         [Required]
         public decimal OriginalPrice { get; set; }
+        [ForeignKey("BusinessProfile")]
+        public int? BusinessProfileId { get; set; }
 
+        public string BookingType { get; set; } = "Personal";
+
+        public BusinessProfile? BusinessProfile { get; set; }
         public int PointsUsed { get; set; } = 0;
 
         public decimal PointDiscountAmount { get; set; } = 0;

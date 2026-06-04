@@ -31,6 +31,10 @@ namespace AutoWashPro.DAL.Data
         public DbSet<Lane> Lanes { get; set; }
         public DbSet<StaffLaneAssignment> StaffLaneAssignments { get; set; }
         public DbSet<EmployeeProfile> EmployeeProfiles { get; set; }
+        public DbSet<BusinessProfile> BusinessProfiles { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<InvoiceItem> InvoiceItems { get; set; }
+        public DbSet<BookingDocument> BookingDocuments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -131,6 +135,40 @@ namespace AutoWashPro.DAL.Data
                 .WithMany(b => b.Lanes)
                 .HasForeignKey(l => l.BranchId)
                 .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.BusinessProfile)
+                .WithOne(b => b.User)
+                .HasForeignKey<BusinessProfile>(b => b.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.BusinessProfile)
+                .WithMany()
+                .HasForeignKey(b => b.BusinessProfileId)
+                .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<BookingDetail>()
+                .HasOne(bd => bd.Vehicle)
+                .WithMany()
+                .HasForeignKey(bd => bd.VehicleLicensePlate)
+                .HasPrincipalKey(v => v.LicensePlate)
+                .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<Invoice>()
+                .HasOne(i => i.Booking)
+                .WithMany()
+                .HasForeignKey(i => i.BookingId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<InvoiceItem>()
+                .HasOne(ii => ii.Invoice)
+                .WithMany(i => i.InvoiceItems)
+                .HasForeignKey(ii => ii.InvoiceId);
+            modelBuilder.Entity<InvoiceItem>()
+                .HasOne(ii => ii.BookingDetail)
+                .WithMany()
+                .HasForeignKey(ii => ii.BookingDetailId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<BookingDocument>()
+                .HasOne(d => d.Booking)
+                .WithMany()
+                .HasForeignKey(d => d.BookingId);
         }
     }
 }
