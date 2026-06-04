@@ -36,14 +36,14 @@ namespace BLL.Services
             }
 
             // Upload Business License
-            var businessLicenseUrl = await _cloudinaryService.UploadPdfAsync(request.BusinessLicense);
+            var businessLicenseUrl = await _cloudinaryService.UploadFileAsync(request.BusinessLicense, "business-documents");
 
             // Upload Authorization Letter (optional)
             string? authorizationLetterUrl = null;
 
             if (request.AuthorizationLetter != null)
             {
-                authorizationLetterUrl = await _cloudinaryService.UploadPdfAsync(request.AuthorizationLetter);
+                authorizationLetterUrl = await _cloudinaryService.UploadFileAsync(request.AuthorizationLetter, "business-documents");
             }
 
             var entity = new BusinessProfile
