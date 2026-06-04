@@ -32,6 +32,41 @@ namespace AutoWashPro.API.Controllers
             return Ok(staffList);
         }
 
+        [HttpGet("lanes")]
+        public async Task<IActionResult> GetLanesInBranch()
+        {
+            var lanes = await _managerService.GetLanesInBranchAsync(GetUserId());
+            return Ok(lanes);
+        }
+
+        [HttpGet("lanes/{laneId}/staff")]
+        public async Task<IActionResult> GetStaffAssignedToLane(int laneId)
+        {
+            var staffList = await _managerService.GetStaffAssignedToLaneAsync(GetUserId(), laneId);
+            return Ok(staffList);
+        }
+
+        [HttpGet("timeslots")]
+        public async Task<IActionResult> GetTimeSlotsInBranch()
+        {
+            var timeSlots = await _managerService.GetTimeSlotsInBranchAsync(GetUserId());
+            return Ok(timeSlots);
+        }
+
+        [HttpPost("lanes")]
+        public async Task<IActionResult> CreateLane([FromBody] CreateLaneDTO dto)
+        {
+            var lane = await _managerService.CreateLaneAsync(GetUserId(), dto);
+            return CreatedAtAction(nameof(GetLanesInBranch), new { }, lane);
+        }
+
+        [HttpPost("timeslots")]
+        public async Task<IActionResult> CreateTimeSlot([FromBody] CreateTimeSlotDTO dto)
+        {
+            var timeSlot = await _managerService.CreateTimeSlotAsync(GetUserId(), dto);
+            return CreatedAtAction(nameof(GetTimeSlotsInBranch), new { }, timeSlot);
+        }
+
         [HttpPost("lanes/assign-staff")]
         public async Task<IActionResult> AssignStaffToLane([FromBody] AssignStaffToLaneDTO dto)
         {
