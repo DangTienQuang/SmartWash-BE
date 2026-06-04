@@ -14,7 +14,7 @@ namespace BLL.Services
             _cloudinary = cloudinary;
         }
 
-        public async Task<string> UploadPdfAsync(IFormFile file)
+        public async Task<string> UploadFileAsync(IFormFile file, string folder)
         {
             if (file == null || file.Length == 0)
             {
@@ -26,15 +26,13 @@ namespace BLL.Services
             var uploadParams = new RawUploadParams
             {
                 File = new FileDescription(file.FileName, stream),
-                Folder = "business-documents"
+                Folder = folder
             };
 
             var result = await _cloudinary.UploadAsync(uploadParams);
 
             if (result.Error != null)
-            {
-                throw new Exception( result.Error.Message);
-            }
+                throw new Exception(result.Error.Message);
 
             return result.SecureUrl.ToString();
         }

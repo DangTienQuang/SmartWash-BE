@@ -9,6 +9,6 @@ namespace BLL.Services.Interface
 {
     public interface ICloudinaryService
     {
-        Task<string> UploadPdfAsync(IFormFile file);
+        Task<string> UploadFileAsync(IFormFile file, string folder);
     }
 }
