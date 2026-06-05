@@ -3,6 +3,7 @@ using System;
 using AutoWashPro.DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(AutoWashDbContext))]
-    partial class AutoWashDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260605024104_UpdateDBv2")]
+    partial class UpdateDBv2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1074,6 +1077,7 @@ namespace DAL.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
+                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<decimal>("WashCost")
@@ -1096,7 +1100,7 @@ namespace DAL.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int?>("BookingId")
+                    b.Property<int>("BookingId")
                         .HasColumnType("int");
 
                     b.Property<int?>("BusinessProfileId")
@@ -1550,28 +1554,21 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Entities.FleetWashLog", b =>
                 {
-                    b.HasOne("AutoWashPro.DAL.Entities.Booking", "Booking")
+                    b.HasOne("AutoWashPro.DAL.Entities.Booking", null)
                         .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("BookingId");
 
-                    b.HasOne("AutoWashPro.DAL.Entities.Branch", "Branch")
+                    b.HasOne("AutoWashPro.DAL.Entities.Branch", null)
                         .WithMany()
                         .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DAL.Entities.FleetVehicle", "FleetVehicle")
+                    b.HasOne("DAL.Entities.FleetVehicle", null)
                         .WithMany()
                         .HasForeignKey("FleetVehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Booking");
-
-                    b.Navigation("Branch");
-
-                    b.Navigation("FleetVehicle");
                 });
 
             modelBuilder.Entity("DAL.Entities.Invoice", b =>
@@ -1579,7 +1576,8 @@ namespace DAL.Migrations
                     b.HasOne("AutoWashPro.DAL.Entities.Booking", "Booking")
                         .WithMany()
                         .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("DAL.Entities.BusinessProfile", "BusinessProfile")
                         .WithMany()
