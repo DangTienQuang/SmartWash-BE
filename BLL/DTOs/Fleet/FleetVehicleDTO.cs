@@ -29,4 +29,12 @@ namespace BLL.DTOs.Fleet
         public string Status { get; set; } = null!;
         public DateTime CheckInTime { get; set; }
     }
+
+    public class VehicleStatementDTO
+    {
+        public int FleetVehicleId { get; set; }
+        public string LicensePlate { get; set; } = null!;
+        public int WashCount { get; set; }
+        public decimal TotalCost { get; set; }
+    }
 }

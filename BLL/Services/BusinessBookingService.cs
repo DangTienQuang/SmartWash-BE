@@ -1,6 +1,7 @@
 ﻿using AutoWashPro.BLL.Exceptions;
 using AutoWashPro.DAL.Data;
 using AutoWashPro.DAL.Entities;
+using BLL.DTOs;
 using BLL.DTOs.Business;
 using BLL.DTOs.Fleet;
 using BLL.Services.Interface;
@@ -343,23 +344,75 @@ namespace BLL.Services
             };
         }
 
-        public async Task CompleteWashAsync(int fleetWashLogId)
+        //public async Task CompleteWashAsync(int washLogId)
+        //{
+        //    var washLog = await _context.FleetWashLogs
+        //        .Include(x => x.Booking)
+        //            .ThenInclude(x => x.BookingDetails)
+        //        .FirstOrDefaultAsync(x => x.FleetWashLogId == washLogId);
+
+        //    if (washLog == null)
+        //        throw new NotFoundException("Wash log not found.");
+
+        //    if (washLog.Status == "Completed")
+        //        throw new BadRequestException("Wash already completed.");
+
+        //    washLog.Status = "Completed";
+        //    washLog.CompletedTime = DateTime.UtcNow;
+
+        //    if (washLog.Booking != null)
+        //    {
+        //        await GenerateInvoiceAsync(washLog);
+        //    }
+
+        //    await _context.SaveChangesAsync();
+        //}
+
+        private async Task GenerateInvoiceAsync(FleetWashLog washLog)
         {
-            var washLog = await _context.FleetWashLogs
-                .Include(x => x.Booking)
-                .FirstOrDefaultAsync(x =>
-                    x.FleetWashLogId == fleetWashLogId);
+            var booking = washLog.Booking!;
 
-            if (washLog == null) throw new NotFoundException("Wash log not found.");
+            var invoice = new Invoice
+            {
+                InvoiceCode = $"INV-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                BookingId = booking.BookingId,
+                BusinessProfileId = booking.BusinessProfileId,
+                InvoiceType = "FleetWash",
+                Status = "Pending",
+                IssuedAt = DateTime.UtcNow
+            };
 
-            if (washLog.Status == "Completed") throw new BadRequestException("Already completed.");
-
-            washLog.CompletedTime = DateTime.UtcNow;
-            washLog.Status = "Completed";
-
-            washLog.Booking.Status = "Completed";
+            _context.Invoices.Add(invoice);
 
             await _context.SaveChangesAsync();
+
+            decimal subtotal = 0;
+
+            foreach (var detail in booking.BookingDetails)
+            {
+                var service = await _context.Services
+                    .FirstOrDefaultAsync(x => x.ServiceId == detail.ServiceId);
+
+                var item = new InvoiceItem
+                {
+                    InvoiceId = invoice.InvoiceId,
+                    BookingDetailId = detail.DetailId,
+                    Description = service?.ServiceName ?? "Fleet Wash Service",
+                    Quantity = 1,
+                    UnitPrice = detail.Price,
+                    Amount = detail.Price
+                };
+
+                subtotal += detail.Price;
+
+                _context.InvoiceItems.Add(item);
+            }
+
+            invoice.Subtotal = subtotal;
+            invoice.TaxAmount = 0;
+            invoice.TotalAmount = subtotal;
+
+            washLog.WashCost = subtotal;
         }
 
         public async Task<FleetCheckInResponseDTO> WalkInAsync(FleetWalkInDTO dto)
@@ -422,21 +475,20 @@ namespace BLL.Services
         public async Task WalkOutAsync(int washLogId)
         {
             var washLog = await _context.FleetWashLogs
-                .FirstOrDefaultAsync(x =>
-                    x.FleetWashLogId == washLogId);
+                .FirstOrDefaultAsync(x => x.FleetWashLogId == washLogId);
 
             if (washLog == null)
             {
                 throw new NotFoundException("Wash log not found.");
             }
 
-            if (washLog.Status == "Completed")
+            if (washLog.Status != "Processing")
             {
-                throw new BadRequestException("Vehicle already checked out.");
+                throw new BadRequestException("Vehicle must be in processing state.");
             }
 
-            washLog.CompletedTime = DateTime.UtcNow;
             washLog.Status = "Completed";
+            washLog.CompletedTime = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
         }
@@ -453,7 +505,7 @@ namespace BLL.Services
                 throw new NotFoundException("Wash log not found.");
             }
 
-            if (washLog.Status != "CheckedIn")
+            if (washLog.Status != "Assigned")
             {
                 throw new BadRequestException("Vehicle is not waiting for processing.");
             }
@@ -473,6 +525,395 @@ namespace BLL.Services
                 washLog.Booking.ProcessingLaneId = dto.LaneId;
                 washLog.Booking.ProcessingStaffId = staffUserId;
             }
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<CurrentFleetVehicleDTO>> GetCurrentVehiclesAsync()
+        {
+            return await _context.FleetWashLogs
+                .Include(x => x.FleetVehicle)
+                .Where(x =>
+                    x.Status == "CheckedIn" ||
+                    x.Status == "Processing")
+                .OrderBy(x => x.CheckInTime)
+                .Select(x => new CurrentFleetVehicleDTO
+                {
+                    FleetWashLogId = x.FleetWashLogId,
+                    LicensePlate = x.FleetVehicle.LicensePlate,
+                    DriverName = x.FleetVehicle.DriverName,
+                    Status = x.Status!,
+                    CheckInTime = x.CheckInTime
+                })
+                .ToListAsync();
+        }
+
+        public async Task<FleetCheckoutResponseDTO> CheckOutAsync(int washLogId)
+        {
+            var washLog = await _context.FleetWashLogs
+                .Include(x => x.Booking)
+                    .ThenInclude(x => x.BookingDetails)
+                .FirstOrDefaultAsync(x =>
+                    x.FleetWashLogId == washLogId &&
+                    x.Status != "Completed");
+
+            if (washLog == null)
+            {
+                throw new NotFoundException("Wash log not found.");
+            }
+
+            decimal totalAmount = 0;
+
+            Invoice invoice;
+
+            if (washLog.BookingId.HasValue)
+            {
+                var booking = washLog.Booking!;
+
+                totalAmount = booking.FinalAmount;
+
+                invoice = new Invoice
+                {
+                    InvoiceCode = $"INV-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                    BookingId = booking.BookingId,
+                    BusinessProfileId = booking.BusinessProfileId,
+                    InvoiceType = "FleetWash",
+                    Subtotal = totalAmount,
+                    TaxAmount = 0,
+                    TotalAmount = totalAmount,
+                    Status = "Issued",
+                    IssuedAt = DateTime.UtcNow
+                };
+
+                _context.Invoices.Add(invoice);
+
+                await _context.SaveChangesAsync();
+
+                foreach (var detail in booking.BookingDetails)
+                {
+                    var service = await _context.Services
+                        .FirstOrDefaultAsync(x => x.ServiceId == detail.ServiceId);
+
+                    _context.InvoiceItems.Add(new InvoiceItem
+                    {
+                        InvoiceId = invoice.InvoiceId,
+                        BookingDetailId = detail.DetailId,
+                        Description = service?.ServiceName ?? "Fleet Service",
+                        Quantity = 1,
+                        UnitPrice = detail.Price,
+                        Amount = detail.Price
+                    });
+                }
+            }
+            else
+            {
+                // Walk-in Fleet
+
+                totalAmount = washLog.WashCost;
+
+                invoice = new Invoice
+                {
+                    InvoiceCode = $"INV-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                    BookingId = 0, // walk in can still be calculate
+                    InvoiceType = "FleetWalkIn",
+                    Subtotal = totalAmount,
+                    TaxAmount = 0,
+                    TotalAmount = totalAmount,
+                    Status = "Issued",
+                    IssuedAt = DateTime.UtcNow
+                };
+
+                _context.Invoices.Add(invoice);
+
+                await _context.SaveChangesAsync();
+
+                _context.InvoiceItems.Add(new InvoiceItem
+                {
+                    InvoiceId = invoice.InvoiceId,
+                    BookingDetailId = 0,
+                    Description = "Fleet Walk-in Wash",
+                    Quantity = 1,
+                    UnitPrice = totalAmount,
+                    Amount = totalAmount
+                });
+            }
+
+            washLog.Status = "Completed";
+            washLog.CompletedTime = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return new FleetCheckoutResponseDTO
+            {
+                FleetWashLogId = washLog.FleetWashLogId,
+                InvoiceId = invoice.InvoiceId,
+                InvoiceCode = invoice.InvoiceCode,
+                TotalAmount = invoice.TotalAmount,
+                CompletedTime = washLog.CompletedTime.Value
+            };
+        }
+
+        public async Task<InvoiceDTO> GetInvoiceByBookingAsync(int bookingId)
+        {
+            var invoice = await _context.Invoices
+                .Include(x => x.InvoiceItems)
+                .FirstOrDefaultAsync(x => x.BookingId == bookingId);
+
+            if (invoice == null)
+                throw new NotFoundException("Invoice not found.");
+
+            return new InvoiceDTO
+            {
+                InvoiceId = invoice.InvoiceId,
+                InvoiceCode = invoice.InvoiceCode,
+                Subtotal = invoice.Subtotal,
+                TaxAmount = invoice.TaxAmount,
+                TotalAmount = invoice.TotalAmount,
+                Status = invoice.Status,
+                IssuedAt = invoice.IssuedAt,
+                Items = invoice.InvoiceItems.Select(x => new InvoiceItemDTO
+                {
+                    Description = x.Description,
+                    Quantity = x.Quantity,
+                    UnitPrice = x.UnitPrice,
+                    Amount = x.Amount
+                }).ToList()
+            };
+        }
+
+        public async Task<List<FleetWashHistoryDTO>> GetFleetWashHistoryAsync(int businessUserId, FleetHistoryFilterDTO filter)
+        {
+            var business = await _context.BusinessProfiles
+                .FirstOrDefaultAsync(x => x.UserId == businessUserId);
+
+            if (business == null) throw new NotFoundException("Business profile not found.");
+
+            var query = _context.FleetWashLogs
+                .Include(x => x.FleetVehicle)
+                    .ThenInclude(x => x.VehicleType)
+                .Include(x => x.Booking)
+                    .ThenInclude(x => x.Branch)
+                .Where(x => x.FleetVehicle.BusinessProfileId == business.BusinessProfileId)
+                .AsQueryable();
+
+            if (filter.FleetVehicleId.HasValue)
+            {
+                query = query.Where(x => x.FleetVehicleId == filter.FleetVehicleId.Value);
+            }
+
+            if (filter.FromDate.HasValue)
+            {
+                query = query.Where(x => x.CheckInTime >= filter.FromDate.Value);
+            }
+
+            if (filter.ToDate.HasValue)
+            {
+                query = query.Where(x => x.CheckInTime <= filter.ToDate.Value);
+            }
+
+            return await query
+                .OrderByDescending(x => x.CheckInTime)
+                .Skip((filter.Page - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .Select(x => new FleetWashHistoryDTO
+                {
+                    FleetWashLogId = x.FleetWashLogId,
+                    LicensePlate = x.FleetVehicle.LicensePlate,
+                    VehicleType = x.FleetVehicle.VehicleType.Name,
+                    BranchName =
+                        x.Booking != null
+                            ? x.Booking.Branch.Name
+                            : "Walk-In",
+                    CheckInTime = x.CheckInTime,
+                    CompletedTime = x.CompletedTime,
+                    Status = x.Status!,
+                    WashCost = x.WashCost,
+                    BookingId = x.BookingId,
+                    WashType =
+                        x.BookingId != null
+                            ? "Booking"
+                            : "WalkIn"
+                })
+                .ToListAsync();
+        }
+
+        public async Task<FleetDashboardDTO> GetDashboardAsync(int businessUserId)
+        {
+            var business = await _context.BusinessProfiles
+                .FirstOrDefaultAsync(x => x.UserId == businessUserId);
+
+            if (business == null) throw new NotFoundException("Business profile not found.");
+
+            var today = DateTime.Today;
+
+            var firstDayOfMonth = new DateTime(today.Year, today.Month, 1);
+
+            var vehicleIds = await _context.FleetVehicles
+                .Where(x => x.BusinessProfileId == business.BusinessProfileId)
+                .Select(x => x.FleetVehicleId)
+                .ToListAsync();
+
+            return new FleetDashboardDTO
+            {
+                TotalVehicles = await _context.FleetVehicles
+                    .CountAsync(x => x.BusinessProfileId == business.BusinessProfileId),
+
+                ActiveVehicles = await _context.FleetVehicles
+                    .CountAsync(x => x.BusinessProfileId == business.BusinessProfileId && x.Status == "Active"),
+
+                PendingVehicles = await _context.FleetVehicles
+                    .CountAsync(x => x.BusinessProfileId == business.BusinessProfileId && x.Status == "PendingApproval"),
+
+                TodayWashCount = await _context.FleetWashLogs
+                    .CountAsync(x => vehicleIds.Contains(x.FleetVehicleId) && x.CheckInTime.Date == today),
+
+                MonthlyWashCount = await _context.FleetWashLogs
+                    .CountAsync(x => vehicleIds.Contains(x.FleetVehicleId) && x.CheckInTime >= firstDayOfMonth),
+
+                MonthlySpend = await _context.FleetWashLogs
+                        .Where(x => vehicleIds.Contains(x.FleetVehicleId) && x.CheckInTime >= firstDayOfMonth)
+                        .SumAsync(x => (decimal?)x.WashCost) ?? 0,
+
+                VehiclesCurrentlyInStation = await _context.FleetWashLogs
+                    .CountAsync(x => vehicleIds.Contains(x.FleetVehicleId) && x.Status != "Completed" && x.Status != "Cancelled")
+            };
+        }
+
+        public async Task<List<InvoiceListDTO>> GetInvoicesAsync(int businessUserId)
+        {
+            var business = await _context.BusinessProfiles
+                .FirstOrDefaultAsync(x => x.UserId == businessUserId);
+
+            if (business == null) throw new NotFoundException("Business profile not found.");
+
+            return await _context.Invoices
+                .Include(x => x.Booking)
+                .Where(x => x.BusinessProfileId == business.BusinessProfileId)
+                .OrderByDescending(x => x.IssuedAt)
+                .Select(x => new InvoiceListDTO
+                {
+                    InvoiceId = x.InvoiceId,
+                    InvoiceCode = x.InvoiceCode,
+                    IssuedAt = x.IssuedAt,
+                    TotalAmount = x.TotalAmount,
+                    Status = x.Status,
+                    LicensePlate = x.Booking.LicensePlate
+                })
+                .ToListAsync();
+        }
+
+        public async Task<InvoiceDetailDTO> GetInvoiceDetailAsync(int businessUserId, int invoiceId)
+        {
+            var business = await _context.BusinessProfiles
+                .FirstOrDefaultAsync(x => x.UserId == businessUserId);
+
+            if (business == null) throw new NotFoundException("Business profile not found.");
+
+            var invoice = await _context.Invoices
+                .Include(x => x.Booking)
+                .Include(x => x.InvoiceItems)
+                .FirstOrDefaultAsync(x => x.InvoiceId == invoiceId && x.BusinessProfileId == business.BusinessProfileId);
+
+            if (invoice == null) throw new NotFoundException("Invoice not found.");
+
+            return new InvoiceDetailDTO
+            {
+                InvoiceId = invoice.InvoiceId,
+                InvoiceCode = invoice.InvoiceCode,
+                IssuedAt = invoice.IssuedAt,
+                Subtotal = invoice.Subtotal,
+                TaxAmount = invoice.TaxAmount,
+                TotalAmount = invoice.TotalAmount,
+                Status = invoice.Status,
+                LicensePlate = invoice.Booking.LicensePlate,
+
+                Items = invoice.InvoiceItems
+                    .Select(i => new InvoiceItemDTO
+                    {
+                        InvoiceItemId = i.InvoiceItemId,
+                        Description = i.Description,
+                        Quantity = i.Quantity,
+                        UnitPrice = i.UnitPrice,
+                        Amount = i.Amount
+                    })
+                    .ToList()
+            };
+        }
+
+        public async Task<MonthlyStatementDTO> GetMonthlyStatementAsync(int businessUserId, int year, int month)
+        {
+            var business = await _context.BusinessProfiles.FirstOrDefaultAsync(x => x.UserId == businessUserId);
+
+            if (business == null) throw new NotFoundException("Business profile not found.");
+
+            var startDate = new DateTime(year, month, 1);
+
+            var endDate = startDate.AddMonths(1);
+
+            var logs = await _context.FleetWashLogs
+                .Include(x => x.FleetVehicle)
+                .Where(x =>
+                    x.FleetVehicle.BusinessProfileId ==
+                    business.BusinessProfileId &&
+                    x.CheckInTime >= startDate &&
+                    x.CheckInTime < endDate)
+                .ToListAsync();
+
+            return new MonthlyStatementDTO
+            {
+                Year = year,
+                Month = month,
+                TotalWashes = logs.Count,
+                TotalCost = logs.Sum(x => x.WashCost),
+                Vehicles = logs
+                    .GroupBy(x => new
+                    {
+                        x.FleetVehicleId,
+                        x.FleetVehicle.LicensePlate
+                    })
+                    .Select(g => new VehicleStatementDTO
+                    {
+                        FleetVehicleId = g.Key.FleetVehicleId,
+                        LicensePlate = g.Key.LicensePlate,
+                        WashCount = g.Count(),
+                        TotalCost = g.Sum(x => x.WashCost)
+                    })
+                    .OrderByDescending(x => x.TotalCost)
+                    .ToList()
+            };
+        }
+
+        public async Task AssignLaneAsync(int washLogId, AssignLaneDTO dto)
+        {
+            var washLog = await _context.FleetWashLogs.FirstOrDefaultAsync(x => x.FleetWashLogId == washLogId);
+
+            if (washLog == null)
+            {
+                throw new NotFoundException("Wash log not found.");
+            }
+
+            if (washLog.Status != "CheckedIn")
+            {
+                throw new BadRequestException("Vehicle is not waiting for assignment.");
+            }
+
+            var lane = await _context.Lanes.FirstOrDefaultAsync(x => x.LaneId == dto.LaneId);
+
+            if (lane == null)
+            {
+                throw new NotFoundException("Lane not found.");
+            }
+
+            var staff = await _context.Users.FirstOrDefaultAsync(x => x.UserId == dto.StaffUserId);
+
+            if (staff == null)
+            {
+                throw new NotFoundException("Staff not found.");
+            }
+
+            washLog.LaneId = dto.LaneId;
+            washLog.StaffUserId = dto.StaffUserId;
+            washLog.Status = "Assigned";
 
             await _context.SaveChangesAsync();
         }

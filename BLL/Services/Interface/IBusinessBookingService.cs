@@ -1,4 +1,5 @@
-﻿using BLL.DTOs.Business;
+﻿using BLL.DTOs;
+using BLL.DTOs.Business;
 using BLL.DTOs.Fleet;
 using System;
 using System.Collections.Generic;
@@ -16,9 +17,18 @@ namespace BLL.Services.Interface
         Task<BusinessBookingDetailDTO> GetBookingDetailAsync(int businessUserId, int bookingId);
         Task CancelBookingAsync(int businessUserId, int bookingId);
         Task<FleetWashLogDTO> CheckInAsync(int bookingId);
-        Task CompleteWashAsync(int fleetWashLogId);
+        //Task CompleteWashAsync(int fleetWashLogId);
         Task<FleetCheckInResponseDTO> WalkInAsync(FleetWalkInDTO dto);
         Task WalkOutAsync(int washLogId);
         Task StartProcessingAsync(int washLogId, int staffUserId, StartFleetWashDTO dto);
+        Task<List<CurrentFleetVehicleDTO>> GetCurrentVehiclesAsync();
+        Task<FleetCheckoutResponseDTO> CheckOutAsync(int washLogId);
+        Task<InvoiceDTO> GetInvoiceByBookingAsync(int bookingId);
+        Task<List<FleetWashHistoryDTO>> GetFleetWashHistoryAsync(int businessUserId, FleetHistoryFilterDTO filter);
+        Task<FleetDashboardDTO> GetDashboardAsync(int businessUserId);
+        Task<List<InvoiceListDTO>> GetInvoicesAsync(int businessUserId);
+        Task<InvoiceDetailDTO> GetInvoiceDetailAsync(int businessUserId, int invoiceId);
+        Task<MonthlyStatementDTO> GetMonthlyStatementAsync(int businessUserId, int year, int month);
+        Task AssignLaneAsync(int washLogId, AssignLaneDTO dto);
     }
 }

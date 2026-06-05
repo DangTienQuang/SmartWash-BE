@@ -1,6 +1,7 @@
 ﻿using AutoWashPro.BLL.Exceptions;
 using BLL.DTOs;
 using BLL.DTOs.Business;
+using BLL.DTOs.Fleet;
 using BLL.Helpers;
 using BLL.Services.Interface;
 using Microsoft.AspNetCore.Authorization;
@@ -171,7 +172,7 @@ namespace API.Controllers
         {
             int userId = ClaimHelper.GetUserId(User);
 
-            var result =await _businessBookingService.GetBookingDetailAsync(userId, id);
+            var result = await _businessBookingService.GetBookingDetailAsync(userId, id);
 
             return Ok(new
             {
@@ -193,6 +194,85 @@ namespace API.Controllers
             {
                 statusCode = 200,
                 message = "Booking cancelled successfully."
+            });
+        }
+
+        [HttpGet("invoice/{bookingId}")]
+        public async Task<IActionResult> GetInvoice(int bookingId)
+        {
+            var result = await _businessBookingService.GetInvoiceByBookingAsync(bookingId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
+        [HttpGet("history")]
+        public async Task<IActionResult> GetHistory([FromQuery] FleetHistoryFilterDTO filter)
+        {
+            int userId = ClaimHelper.GetUserId(User);
+
+            var result = await _businessBookingService.GetFleetWashHistoryAsync(userId, filter);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
+        [HttpGet("dashboard")]
+        public async Task<IActionResult> GetDashboard()
+        {
+            int userId = ClaimHelper.GetUserId(User);
+
+            var result = await _businessBookingService.GetDashboardAsync(userId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
+        [HttpGet("statements/monthly")]
+        public async Task<IActionResult> GetMonthlyStatement([FromQuery] int year,[FromQuery] int month)
+        {
+            int userId = ClaimHelper.GetUserId(User);
+
+            var result =
+                await _businessBookingService
+                    .GetMonthlyStatementAsync(
+                        userId,
+                        year,
+                        month);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Staff,Manager")]
+        [HttpPost("washlogs/{washLogId}/assign-lane")]
+        public async Task<IActionResult> AssignLane(int washLogId, AssignLaneDTO dto)
+        {
+            await _businessBookingService.AssignLaneAsync(washLogId, dto);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Lane assigned successfully."
             });
         }
     }

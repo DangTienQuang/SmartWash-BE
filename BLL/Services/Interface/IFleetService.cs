@@ -17,5 +17,9 @@ namespace BLL.Services.Interface
         Task<List<FleetVehicleDTO>> GetPendingVehiclesAsync(int businessUserId);
         Task ApproveFleetVehicleAsync(int fleetVehicleId);
         Task RejectFleetVehicleAsync(int fleetVehicleId, string reason);
+        Task<List<FleetHistoryDTO>> GetHistoryAsync(int businessUserId, FleetHistoryFilterDTO filter);
+        Task<List<FleetQueueDTO>> GetBusinessQueueAsync(int branchId);
+        Task<FleetDashboardDTO> GetDashboardAsync(int businessUserId);
+        Task<List<FleetWashHistoryDTO>> GetWashHistoryAsync(int businessUserId);
     }
 }

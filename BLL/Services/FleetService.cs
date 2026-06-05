@@ -270,5 +270,161 @@ namespace BLL.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task<List<FleetQueueDTO>> GetBusinessQueueAsync(int branchId)
+        {
+            var queue = await _context.FleetWashLogs
+                .Include(x => x.FleetVehicle)
+                .Where(x =>
+                    x.BranchId == branchId &&
+                    x.Status == "CheckedIn")
+                .OrderBy(x => x.CheckInTime)
+                .ToListAsync();
+
+            return queue
+                .Select((x, index) => new FleetQueueDTO
+                {
+                    Position = index + 1,
+                    FleetWashLogId = x.FleetWashLogId,
+                    LicensePlate = x.FleetVehicle.LicensePlate,
+                    DriverName = x.FleetVehicle.DriverName,
+                    CheckInTime = x.CheckInTime,
+                    Status = x.Status!
+                })
+                .ToList();
+        }
+
+        public async Task<List<FleetHistoryDTO>> GetHistoryAsync(int businessUserId, FleetHistoryFilterDTO filter)
+        {
+            var business = await _context.BusinessProfiles
+                .FirstOrDefaultAsync(x => x.UserId == businessUserId);
+
+            if (business == null)
+            {
+                throw new NotFoundException("Business profile not found.");
+            }
+
+            var query = _context.FleetWashLogs
+                .Include(x => x.FleetVehicle)
+                .Include(x => x.Booking)
+                .ThenInclude(x => x!.Branch)
+                .Where(x => x.FleetVehicle.BusinessProfileId == business.BusinessProfileId);
+
+            if (filter.FleetVehicleId.HasValue)
+            {
+                query = query.Where(x => x.FleetVehicleId == filter.FleetVehicleId.Value);
+            }
+
+            if (filter.FromDate.HasValue)
+            {
+                query = query.Where(x => x.CheckInTime >= filter.FromDate.Value);
+            }
+
+            if (filter.ToDate.HasValue)
+            {
+                query = query.Where(x => x.CheckInTime <= filter.ToDate.Value);
+            }
+
+            return await query
+                .OrderByDescending(x => x.CheckInTime)
+                .Skip((filter.Page - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .Select(x => new FleetHistoryDTO
+                {
+                    FleetWashLogId = x.FleetWashLogId,
+                    FleetVehicleId = x.FleetVehicleId,
+                    LicensePlate = x.FleetVehicle.LicensePlate,
+                    DriverName = x.FleetVehicle.DriverName,
+                    BranchName = x.Booking != null
+                        ? x.Booking.Branch.Name
+                        : "Walk-in",
+                    CheckInTime = x.CheckInTime,
+                    CompletedTime = x.CompletedTime,
+                    WashCost = x.WashCost,
+                    Status = x.Status!
+                })
+                .ToListAsync();
+        }
+
+        public async Task<FleetDashboardDTO> GetDashboardAsync(int businessUserId)
+        {
+            var business = await _context.BusinessProfiles
+                .FirstOrDefaultAsync(x => x.UserId == businessUserId);
+
+            if (business == null)
+            {
+                throw new NotFoundException("Business profile not found.");
+            }
+
+            var today = DateTime.Today;
+
+            var firstDayOfMonth = new DateTime(today.Year, today.Month, 1);
+
+            var totalVehicles =
+                await _context.FleetVehicles
+                    .CountAsync(x => x.BusinessProfileId == business.BusinessProfileId);
+
+            var activeVehicles =
+                await _context.FleetVehicles
+                    .CountAsync(x => x.BusinessProfileId == business.BusinessProfileId && x.Status == "Active");
+
+            var pendingVehicles =
+                await _context.FleetVehicles
+                    .CountAsync(x => x.BusinessProfileId == business.BusinessProfileId && x.Status == "PendingApproval");
+
+            var todayWashCount =
+                await _context.FleetWashLogs
+                    .CountAsync(x => x.FleetVehicle.BusinessProfileId == business.BusinessProfileId && x.CheckInTime.Date == today);
+
+            var monthlyWashCount =
+                await _context.FleetWashLogs
+                    .CountAsync(x => x.FleetVehicle.BusinessProfileId == business.BusinessProfileId && x.CheckInTime >= firstDayOfMonth);
+
+            var monthlySpend = await _context.FleetWashLogs
+                    .Where(x => x.FleetVehicle.BusinessProfileId == business.BusinessProfileId && x.CheckInTime >= firstDayOfMonth)
+                    .SumAsync(x => (decimal?)x.WashCost) ?? 0;
+
+            var vehiclesCurrentlyInStation = await _context.FleetWashLogs
+                    .CountAsync(x => x.FleetVehicle.BusinessProfileId == business.BusinessProfileId && (x.Status == "CheckedIn" || x.Status == "Processing"));
+
+            return new FleetDashboardDTO
+            {
+                TotalVehicles = totalVehicles,
+                ActiveVehicles = activeVehicles,
+                PendingVehicles = pendingVehicles,
+                TodayWashCount = todayWashCount,
+                MonthlyWashCount = monthlyWashCount,
+                MonthlySpend = monthlySpend,
+                VehiclesCurrentlyInStation = vehiclesCurrentlyInStation
+            };
+        }
+
+        public async Task<List<FleetWashHistoryDTO>> GetWashHistoryAsync(int businessUserId)
+        {
+            var business = await _context.BusinessProfiles
+                .FirstOrDefaultAsync(x => x.UserId == businessUserId);
+
+            if (business == null)
+                throw new NotFoundException("Business profile not found.");
+
+            return await _context.FleetWashLogs
+                .Include(x => x.Booking)
+                .Include(x => x.Booking!.FleetVehicle)
+                .Where(x =>
+                    x.Booking != null &&
+                    x.Booking.BusinessProfileId == business.BusinessProfileId)
+                .OrderByDescending(x => x.CheckInTime)
+                .Select(x => new FleetWashHistoryDTO
+                {
+                    FleetWashLogId = x.FleetWashLogId,
+                    LicensePlate = x.Booking!.FleetVehicle!.LicensePlate,
+                    CheckInTime = x.CheckInTime,
+                    CompletedTime = x.CompletedTime,
+                    WashCost = x.WashCost,
+                    Status = x.Status!
+                })
+                .ToListAsync();
+        }
+
+
     }
 }

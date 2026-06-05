@@ -13,7 +13,7 @@ namespace DAL.Entities
 
         public string InvoiceCode { get; set; } = null!;
 
-        public int BookingId { get; set; }
+        public int? BookingId { get; set; }
 
         public int? BusinessProfileId { get; set; }
 
@@ -29,7 +29,7 @@ namespace DAL.Entities
 
         public DateTime IssuedAt { get; set; }
 
-        public Booking Booking { get; set; } = null!;
+        public Booking? Booking { get; set; } = null!;
 
         public BusinessProfile? BusinessProfile { get; set; }
 

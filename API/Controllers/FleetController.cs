@@ -126,18 +126,18 @@ namespace API.Controllers
             });
         }
 
-        [Authorize(Roles = "Staff,Manager")]
-        [HttpPost("{id}/complete")]
-        public async Task<IActionResult> Complete(int id)
-        {
-            await _businessBookingService.CompleteWashAsync(id);
+        //[Authorize(Roles = "Staff,Manager")]
+        //[HttpPost("{id}/complete")]
+        //public async Task<IActionResult> Complete(int id)
+        //{
+        //    await _businessBookingService.CompleteWashAsync(id);
 
-            return Ok(new
-            {
-                statusCode = 200,
-                message = "Wash completed."
-            });
-        }
+        //    return Ok(new
+        //    {
+        //        statusCode = 200,
+        //        message = "Wash completed."
+        //    });
+        //}
 
         [Authorize(Roles = "Staff,Manager")]
         [HttpPost("walk-in")]
@@ -178,6 +178,83 @@ namespace API.Controllers
             {
                 statusCode = 200,
                 message = "Vehicle moved to processing."
+            });
+        }
+
+        [Authorize(Roles = "Staff,Manager")]
+        [HttpGet("current")]
+        public async Task<IActionResult> GetCurrentVehicles()
+        {
+            var result =
+                await _businessBookingService.GetCurrentVehiclesAsync();
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Staff,Manager")]
+        [HttpGet("queue")]
+        public async Task<IActionResult> GetQueue([FromQuery] int branchId)
+        {
+            var result =
+                await _fleetService.GetBusinessQueueAsync(branchId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
+        [HttpGet("history")]
+        public async Task<IActionResult> GetHistory([FromQuery] FleetHistoryFilterDTO filter)
+        {
+            int userId = ClaimHelper.GetUserId(User);
+
+            var result = await _fleetService.GetHistoryAsync(userId, filter);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
+        [HttpGet("dashboard")]
+        public async Task<IActionResult> GetDashboard()
+        {
+            int userId = ClaimHelper.GetUserId(User);
+
+            var result =
+                await _fleetService.GetDashboardAsync(userId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Staff,Manager")]
+        [HttpPost("checkout/{washLogId}")]
+        public async Task<IActionResult> CheckOut(int washLogId)
+        {
+            var result = await _businessBookingService.CheckOutAsync(washLogId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Check out successful.",
+                data = result
             });
         }
     }
