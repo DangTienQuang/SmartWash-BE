@@ -1,5 +1,6 @@
 ﻿using AutoWashPro.BLL.Exceptions;
 using BLL.DTOs;
+using BLL.DTOs.Business;
 using BLL.Helpers;
 using BLL.Services.Interface;
 using Microsoft.AspNetCore.Authorization;
@@ -16,13 +17,15 @@ namespace API.Controllers
         private readonly IInvoiceService _invoiceService;
         private readonly IBookingAttendanceService _attendanceService;
         private readonly IFleetService _fleetService;
+        private readonly IBusinessBookingService _businessBookingService;
 
-        public BusinessController(IBusinessService businessService, IInvoiceService invoiceService, IBookingAttendanceService attendanceService, IFleetService fleetService)
+        public BusinessController(IBusinessService businessService, IInvoiceService invoiceService, IBookingAttendanceService attendanceService, IFleetService fleetService, IBusinessBookingService businessBookingService)
         {
             _businessService = businessService;
             _invoiceService = invoiceService;
             _attendanceService = attendanceService;
             _fleetService = fleetService;
+            _businessBookingService = businessBookingService;
         }
 
         [Authorize(Roles = "Customer")]
@@ -61,106 +64,6 @@ namespace API.Controllers
                 data = result
             });
         }
-
-        //[Authorize(Roles = "Business")]
-        //[HttpPost("bookings")]
-        //public async Task<IActionResult> CreateBusinessBooking([FromBody] CreateBusinessBookingDTO dto)
-        //{
-        //    if (dto == null)
-        //        throw new BadRequestException("Booking data is required.");
-
-        //    int userId = ClaimHelper.GetUserId(User);
-
-        //    var bookingId = await _businessService.CreateBusinessBookingAsync(userId, dto);
-
-        //    return Ok(new
-        //    {
-        //        statusCode = 200,
-        //        message = "Business booking created successfully.",
-        //        data = new { bookingId }
-        //    });
-        //}
-
-        //[Authorize(Roles = "Business")]
-        //[HttpGet("bookings")]
-        //public async Task<IActionResult> GetMyBookings()
-        //{
-        //    int userId = ClaimHelper.GetUserId(User);
-
-        //    var result = await _businessService.GetBusinessBookingsAsync(userId);
-
-        //    return Ok(new
-        //    {
-        //        statusCode = 200,
-        //        message = "Success",
-        //        data = result
-        //    });
-        //}
-
-        [Authorize(Roles = "Staff")]
-        [HttpPost("staff/check-in")]
-        public async Task<IActionResult> CheckInVehicle([FromBody] VehicleCheckInDTO dto)
-        {
-            if (dto == null)
-                throw new BadRequestException("Check-in data is required.");
-
-            await _attendanceService.CheckInVehicleAsync(dto);
-
-            return Ok(new
-            {
-                statusCode = 200,
-                message = "Vehicle checked in successfully."
-            });
-        }
-
-        [Authorize(Roles = "Staff")]
-        [HttpPost("staff/complete")]
-        public async Task<IActionResult> CompleteVehicle([FromBody] VehicleCompleteDTO dto)
-        {
-            if (dto == null)
-                throw new BadRequestException("Completion data is required.");
-
-            await _attendanceService.CompleteVehicleAsync(dto);
-
-            return Ok(new
-            {
-                statusCode = 200,
-                message = "Vehicle completed successfully."
-            });
-        }
-
-        [Authorize(Roles = "Staff")]
-        [HttpPost("staff/no-show")]
-        public async Task<IActionResult> MarkNoShow([FromBody] VehicleNoShowDTO dto)
-        {
-            if (dto == null)
-                throw new BadRequestException("No-show data is required.");
-
-            await _attendanceService.MarkNoShowAsync(dto);
-
-            return Ok(new
-            {
-                statusCode = 200,
-                message = "Vehicle marked as no-show."
-            });
-        }
-
-        //[Authorize(Roles = "Business,Staff")]
-        //[HttpPost("staff/generate-invoice")]
-        //public async Task<IActionResult> GenerateInvoice([FromBody] CreateInvoiceDTO dto)
-        //{
-        //    if (dto == null)
-        //        throw new BadRequestException("Invoice data is required.");
-
-        //    var result = await _invoiceService.GenerateInvoiceAsync(dto);
-
-        //    return Ok(new
-        //    {
-        //        statusCode = 200,
-        //        message = "Invoice generated successfully.",
-        //        data = result
-        //    });
-        //}
 
         [Authorize(Roles = "Staff,Manager")]
         [HttpPost("staff/review-application")]
@@ -211,6 +114,85 @@ namespace API.Controllers
                 statusCode = 200,
                 message = "Success",
                 data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
+        [HttpPost("api/v1/business-bookings")]
+        public async Task<IActionResult> CreateBooking(CreateBusinessBookingDTO dto)
+        {
+            int userId = ClaimHelper.GetUserId(User);
+
+            var result = await _businessBookingService.CreateBookingAsync(userId, dto);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
+        [HttpGet("vehicles")]
+        public async Task<IActionResult> GetActiveVehicles()
+        {
+            int userId = ClaimHelper.GetUserId(User);
+
+            var result = await _businessBookingService.GetActiveFleetVehiclesAsync(userId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
+        [HttpGet]
+        public async Task<IActionResult> GetBookings()
+        {
+            int userId = ClaimHelper.GetUserId(User);
+
+            var result = await _businessBookingService.GetBookingsAsync(userId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetBookingDetail(int id)
+        {
+            int userId = ClaimHelper.GetUserId(User);
+
+            var result =await _businessBookingService.GetBookingDetailAsync(userId, id);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
+        [HttpPost("{id}/cancel")]
+        public async Task<IActionResult> CancelBooking(int id)
+        {
+            int userId = ClaimHelper.GetUserId(User);
+
+            await _businessBookingService.CancelBookingAsync(userId, id);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Booking cancelled successfully."
             });
         }
     }

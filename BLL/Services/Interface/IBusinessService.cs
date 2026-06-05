@@ -1,4 +1,6 @@
 ﻿using BLL.DTOs;
+using BLL.DTOs.Business;
+using BLL.DTOs.Fleet;
 using System;
 using System.Collections.Generic;
 using System.Linq;

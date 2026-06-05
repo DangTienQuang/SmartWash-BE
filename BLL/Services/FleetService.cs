@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static BLL.Services.FleetService;
 
 namespace BLL.Services
 {
@@ -131,7 +132,7 @@ namespace BLL.Services
                 var fleetVehicle = new FleetVehicle
                 {
                     BusinessProfileId = business.BusinessProfileId,
-                    FleetImportBatchId= batch.FleetImportBatchId,
+                    FleetImportBatchId = batch.FleetImportBatchId,
                     LicensePlate = licensePlate,
                     VehicleTypeId = vehicleType!.Id,
                     Brand = brand,
@@ -268,5 +269,6 @@ namespace BLL.Services
 
             await _context.SaveChangesAsync();
         }
+
     }
 }

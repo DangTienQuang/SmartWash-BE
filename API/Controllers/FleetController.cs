@@ -1,4 +1,5 @@
-﻿using BLL.DTOs;
+﻿using AutoWashPro.DAL.Entities;
+using BLL.DTOs;
 using BLL.DTOs.Fleet;
 using BLL.Helpers;
 using BLL.Services.Interface;
@@ -13,10 +14,12 @@ namespace API.Controllers
     public class FleetController : ControllerBase
     {
         private readonly IFleetService _fleetService;
+        private readonly IBusinessBookingService _businessBookingService;
 
-        public FleetController(IFleetService fleetService)
+        public FleetController(IFleetService fleetService, IBusinessBookingService businessBookingService)
         {
             _fleetService = fleetService;
+            _businessBookingService = businessBookingService;
         }
 
         // Upload fleet file
@@ -105,6 +108,76 @@ namespace API.Controllers
                 statusCode = 200,
                 message = "Success",
                 data = result
+            });
+        }
+
+        [Authorize(Roles = "Staff,Manager")]
+        [HttpPost("check-in")]
+        public async Task<IActionResult> CheckIn(FleetCheckInDTO dto)
+        {
+            var result =
+                await _businessBookingService.CheckInAsync(dto.BookingId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Staff,Manager")]
+        [HttpPost("{id}/complete")]
+        public async Task<IActionResult> Complete(int id)
+        {
+            await _businessBookingService.CompleteWashAsync(id);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Wash completed."
+            });
+        }
+
+        [Authorize(Roles = "Staff,Manager")]
+        [HttpPost("walk-in")]
+        public async Task<IActionResult> WalkIn([FromBody] FleetWalkInDTO dto)
+        {
+            var result = await _businessBookingService.WalkInAsync(dto);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Fleet vehicle checked in successfully.",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Staff,Manager")]
+        [HttpPost("walk-out/{washLogId}")]
+        public async Task<IActionResult> WalkOut(int washLogId)
+        {
+            await _businessBookingService.WalkOutAsync(washLogId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Fleet vehicle checked out successfully."
+            });
+        }
+
+        [Authorize(Roles = "Staff,Manager")]
+        [HttpPost("{washLogId}/start-processing")]
+        public async Task<IActionResult> StartProcessing(int washLogId, [FromBody] StartFleetWashDTO dto)
+        {
+            int userId = ClaimHelper.GetUserId(User);
+
+            await _businessBookingService.StartProcessingAsync(washLogId, userId, dto);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Vehicle moved to processing."
             });
         }
     }

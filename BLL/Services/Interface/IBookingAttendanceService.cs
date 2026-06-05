@@ -9,10 +9,6 @@ namespace BLL.Services.Interface
 {
     public interface IBookingAttendanceService
     {
-        Task CheckInVehicleAsync(VehicleCheckInDTO dto);
 
-        Task CompleteVehicleAsync(VehicleCompleteDTO dto);
-
-        Task MarkNoShowAsync(VehicleNoShowDTO dto);
     }
 }

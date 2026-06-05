@@ -18,58 +18,5 @@ namespace BLL.Services
         {
             _context = context;
         }
-
-        public async Task CheckInVehicleAsync(VehicleCheckInDTO dto)
-        {
-            var detail = await _context.BookingDetails
-                .FirstOrDefaultAsync(x =>
-                    x.DetailId == dto.BookingDetailId);
-
-            if (detail == null)
-            {
-                throw new Exception("Booking detail not found.");
-            }
-
-            detail.AttendanceStatus = "CheckedIn";
-            detail.CheckInTime = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task CompleteVehicleAsync(VehicleCompleteDTO dto)
-        {
-            var detail = await _context.BookingDetails
-                .FirstOrDefaultAsync(x =>
-                    x.DetailId == dto.BookingDetailId);
-
-            if (detail == null)
-            {
-                throw new Exception("Booking detail not found.");
-            }
-
-            detail.AttendanceStatus = "Completed";
-            detail.CheckOutTime = DateTime.UtcNow;
-            detail.ActualPrice = dto.ActualPrice;
-            detail.DepositStatus = "Applied";
-
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task MarkNoShowAsync(VehicleNoShowDTO dto)
-        {
-            var detail = await _context.BookingDetails
-                .FirstOrDefaultAsync(x =>
-                    x.DetailId == dto.BookingDetailId);
-
-            if (detail == null)
-            {
-                throw new Exception("Booking detail not found.");
-            }
-
-            detail.AttendanceStatus = "NoShow";
-            detail.DepositStatus = "Forfeited";
-
-            await _context.SaveChangesAsync();
-        }
     }
 }

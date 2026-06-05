@@ -80,5 +80,10 @@ namespace AutoWashPro.DAL.Entities
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+
+        public int? FleetVehicleId { get; set; }
+
+        [ForeignKey(nameof(FleetVehicleId))]
+        public FleetVehicle? FleetVehicle { get; set; }
     }
 }

@@ -38,6 +38,7 @@ namespace AutoWashPro.DAL.Data
         public DbSet<FleetVehicle> FleetVehicles { get; set; }
         public DbSet<FleetImportBatch> FleetImportBatches { get; set; }
         public DbSet<FleetImportError> FleetImportErrors { get; set; }
+        public DbSet<FleetWashLog> FleetWashLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -199,6 +200,29 @@ namespace AutoWashPro.DAL.Data
                 .HasOne(x => x.FleetImportBatch)
                 .WithMany()
                 .HasForeignKey(x => x.FleetImportBatchId);
+
+            modelBuilder.Entity<FleetWashLog>()
+                .HasOne(x => x.FleetVehicle)
+                .WithMany()
+                .HasForeignKey(x => x.FleetVehicleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<FleetWashLog>()
+                .HasOne(x => x.Branch)
+                .WithMany()
+                .HasForeignKey(x => x.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<FleetWashLog>()
+                .HasOne(x => x.Booking)
+                .WithMany()
+                .HasForeignKey(x => x.BookingId)
+                .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.FleetVehicle)
+                .WithMany()
+                .HasForeignKey(b => b.FleetVehicleId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

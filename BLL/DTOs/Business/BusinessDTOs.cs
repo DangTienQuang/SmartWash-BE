@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
-namespace BLL.DTOs
+namespace BLL.DTOs.Business
 {
     public class CreateBusinessProfileRequest
     {
