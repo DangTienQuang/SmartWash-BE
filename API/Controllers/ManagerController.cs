@@ -32,11 +32,53 @@ namespace AutoWashPro.API.Controllers
             return Ok(staffList);
         }
 
+        [HttpGet("lanes")]
+        public async Task<IActionResult> GetLanesInBranch()
+        {
+            var lanes = await _managerService.GetLanesInBranchAsync(GetUserId());
+            return Ok(lanes);
+        }
+
+        [HttpGet("lanes/{laneId}/staff")]
+        public async Task<IActionResult> GetStaffAssignedToLane(int laneId)
+        {
+            var staffList = await _managerService.GetStaffAssignedToLaneAsync(GetUserId(), laneId);
+            return Ok(staffList);
+        }
+
+        [HttpGet("timeslots")]
+        public async Task<IActionResult> GetTimeSlotsInBranch()
+        {
+            var timeSlots = await _managerService.GetTimeSlotsInBranchAsync(GetUserId());
+            return Ok(timeSlots);
+        }
+
+        [HttpPost("lanes")]
+        public async Task<IActionResult> CreateLane([FromBody] CreateLaneDTO dto)
+        {
+            var lane = await _managerService.CreateLaneAsync(GetUserId(), dto);
+            return CreatedAtAction(nameof(GetLanesInBranch), new { }, lane);
+        }
+
+        [HttpPost("timeslots")]
+        public async Task<IActionResult> CreateTimeSlot([FromBody] CreateTimeSlotDTO dto)
+        {
+            var timeSlot = await _managerService.CreateTimeSlotAsync(GetUserId(), dto);
+            return CreatedAtAction(nameof(GetTimeSlotsInBranch), new { }, timeSlot);
+        }
+
         [HttpPost("lanes/assign-staff")]
         public async Task<IActionResult> AssignStaffToLane([FromBody] AssignStaffToLaneDTO dto)
         {
             await _managerService.AssignStaffToLaneAsync(GetUserId(), dto);
             return Ok(new { Message = "Staff assigned to lane successfully." });
+        }
+
+        [HttpDelete("lanes/{laneId}/staff/{staffId}")]
+        public async Task<IActionResult> UnassignStaffFromLane(int laneId, int staffId)
+        {
+            await _managerService.UnassignStaffFromLaneAsync(GetUserId(), laneId, staffId);
+            return Ok(new { Message = "Staff unassigned from lane successfully." });
         }
 
         [HttpGet("bookings")]
@@ -51,6 +93,41 @@ namespace AutoWashPro.API.Controllers
         {
             await _managerService.ConfirmCheckInAndAssignLaneAsync(GetUserId(), bookingId, assignment);
             return Ok(new { Message = "Booking checked in and lanes assigned successfully." });
+        }
+
+        [HttpPut("lanes/{laneId}")]
+        public async Task<IActionResult> UpdateLane(int laneId, [FromBody] UpdateLaneDTO dto)
+        {
+            var updatedLane = await _managerService.UpdateLaneAsync(GetUserId(), laneId, dto);
+            return Ok(updatedLane);
+        }
+
+        [HttpDelete("lanes/{laneId}")]
+        public async Task<IActionResult> DeleteLane(int laneId)
+        {
+            await _managerService.DeleteLaneAsync(GetUserId(), laneId);
+            return Ok(new { Message = "Lane deleted successfully." });
+        }
+
+        [HttpPut("timeslots/{slotId}")]
+        public async Task<IActionResult> UpdateTimeSlot(int slotId, [FromBody] UpdateTimeSlotDTO dto)
+        {
+            var updatedSlot = await _managerService.UpdateTimeSlotAsync(GetUserId(), slotId, dto);
+            return Ok(updatedSlot);
+        }
+
+        [HttpDelete("timeslots/{slotId}")]
+        public async Task<IActionResult> DeleteTimeSlot(int slotId)
+        {
+            await _managerService.DeleteTimeSlotAsync(GetUserId(), slotId);
+            return Ok(new { Message = "Time slot deleted successfully." });
+        }
+
+        [HttpDelete("staff/{userId}")]
+        public async Task<IActionResult> DeactivateStaff(int userId)
+        {
+            await _managerService.DeactivateStaffAsync(GetUserId(), userId);
+            return Ok(new { Message = "Staff deactivated successfully." });
         }
     }
 }
