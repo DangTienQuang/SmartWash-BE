@@ -1,4 +1,4 @@
-using AutoWashPro.BLL.DTOs;
+﻿using AutoWashPro.BLL.DTOs;
 using AutoWashPro.BLL.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -41,11 +41,16 @@ namespace AutoWashPro.API.Controllers
             var tasks = await _staffService.GetAssignedBookingsAsync(GetUserId());
             return Ok(tasks);
         }
-
+        [HttpPost("bookings/{bookingId}/checkin")]
+        public async Task<IActionResult> StaffCheckin(int bookingId)
+        {
+            await _staffService.CheckInBookingAsync(GetUserId(), bookingId);
+            return Ok(new { Message = "Check-in xe thành công và đã phân vào làn của bạn." });
+        }
         [HttpPut("bookings/{bookingId}/status")]
         public async Task<IActionResult> UpdateBookingStatus(int bookingId, [FromBody] UpdateBookingStatusDTO dto)
         {
-            await _staffService.UpdateBookingDetailStatusAsync(GetUserId(), bookingId, dto.Status);
+            await _staffService.UpdateBookingStatusAsync(GetUserId(), bookingId, dto.Status);
             return Ok(new { Message = $"Booking status updated to {dto.Status}." });
         }
     }

@@ -165,6 +165,9 @@ namespace AutoWashPro.BLL.DTOs
 {
     public class ForceCancelRequestDTO
     {
+        [Required]
+        public int BranchId { get; set; }
+
         public int? TimeSlotId { get; set; }
 
         public DateTime? AffectedDate { get; set; }
