@@ -1,7 +1,7 @@
 ﻿using AutoWashPro.BLL.Constants;
 using AutoWashPro.BLL.DTOs;
 using AutoWashPro.BLL.Exceptions;
-using AutoWashPro.BLL.Helpers;
+using BLL.Helpers;
 using AutoWashPro.DAL.Data;
 using AutoWashPro.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
