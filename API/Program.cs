@@ -23,16 +23,26 @@ builder.Services.AddControllers()
     {
         options.InvalidModelStateResponseFactory = context =>
         {
-            var errorMessage = context.ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => e.ErrorMessage)
-                .FirstOrDefault();
+            var errors = context.ModelState
+                .SelectMany(entry => entry.Value?.Errors.Select(error => (
+                    Field: entry.Key,
+                    Message: string.IsNullOrWhiteSpace(error.ErrorMessage)
+                        ? "Dữ liệu đầu vào không hợp lệ."
+                        : error.ErrorMessage
+                )) ?? Enumerable.Empty<(string Field, string Message)>())
+                .ToList();
+
+            var errorMessage = errors
+                .Where(error => !string.Equals(error.Field, "request", StringComparison.OrdinalIgnoreCase))
+                .Select(error => error.Message)
+                .FirstOrDefault()
+                ?? errors.Select(error => error.Message).FirstOrDefault();
 
             return new BadRequestObjectResult(new
             {
                 statusCode = 400,
                 message = errorMessage ?? "Dữ liệu đầu vào không hợp lệ.",
-                details = (string?)null
+                details = errors.Select(error => new { field = error.Field, message = error.Message }).ToList()
             });
         };
     });
@@ -136,6 +146,7 @@ builder.Services.AddScoped<IServiceService, AutoWashPro.BLL.Services.ServiceServ
 builder.Services.AddScoped<IBookingService, AutoWashPro.BLL.Services.BookingService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IVoucherService, VoucherService>();
+builder.Services.AddScoped<IVoucherCampaignService, VoucherCampaignService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();
 builder.Services.AddScoped<IAIChatbotService, AIChatbotService>();

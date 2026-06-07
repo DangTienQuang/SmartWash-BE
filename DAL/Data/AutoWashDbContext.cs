@@ -55,6 +55,14 @@ namespace AutoWashPro.DAL.Data
                 .HasIndex(u => u.PhoneNumber)
                 .IsUnique();
 
+            modelBuilder.Entity<Voucher>()
+                .HasIndex(v => v.Code)
+                .IsUnique();
+
+            modelBuilder.Entity<UserVoucher>()
+                .HasIndex(uv => new { uv.UserId, uv.VoucherId, uv.TriggerKey })
+                .IsUnique();
+
             modelBuilder.Entity<User>()
                 .HasOne(u => u.CustomerProfile)
                 .WithOne(c => c.User)

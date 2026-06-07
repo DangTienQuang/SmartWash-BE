@@ -18,19 +18,22 @@ namespace AutoWashPro.BLL.Services
         private readonly ITierService _tierService;
         private readonly IEmailService _emailService;
         private readonly IVoucherService _voucherService;
+        private readonly IVoucherCampaignService _voucherCampaignService;
 
         public BookingService(
             AutoWashDbContext context,
             IWalletService walletService,
             ITierService tierService,
             IEmailService emailService,
-            IVoucherService voucherService)
+            IVoucherService voucherService,
+            IVoucherCampaignService voucherCampaignService)
         {
             _context = context;
             _walletService = walletService;
             _tierService = tierService;
             _emailService = emailService;
             _voucherService = voucherService;
+            _voucherCampaignService = voucherCampaignService;
         }
 
         public async Task<List<TimeSlotResponseDTO>> GetAvailableSlotsAsync(int userId, CheckAvailableSlotsRequestDTO request)
@@ -341,6 +344,12 @@ namespace AutoWashPro.BLL.Services
             booking.Status = newStatus;
             booking.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            if (newStatus == "Completed" && booking.UserId.HasValue)
+            {
+                await _voucherCampaignService.ProcessMilestoneCampaignsAsync(booking.UserId.Value);
+            }
+
             return true;
         }
 
@@ -612,8 +621,11 @@ namespace AutoWashPro.BLL.Services
                 // Apply Voucher & Points
                 if (userVoucher != null)
                 {
-                    userVoucher.IsUsed = true;
+                    userVoucher.UsageCount += 1;
+                    userVoucher.IsUsed = userVoucher.UsageCount >= userVoucher.Voucher.MaxUsagePerUser;
                     userVoucher.UsedDate = DateTime.UtcNow;
+                    userVoucher.LastUsedDate = DateTime.UtcNow;
+                    userVoucher.Voucher.CurrentUsageCount += 1;
                 }
 
                 if (pointsUsed > 0)
@@ -790,11 +802,22 @@ namespace AutoWashPro.BLL.Services
                     if (booking.AppliedVoucherId.HasValue)
                     {
                         var userVoucher = await _context.UserVouchers
+                            .Include(uv => uv.Voucher)
                             .FirstOrDefaultAsync(uv => uv.UserId == userId && uv.VoucherId == booking.AppliedVoucherId.Value);
                         if (userVoucher != null)
                         {
+                            if (userVoucher.UsageCount > 0)
+                            {
+                                userVoucher.UsageCount -= 1;
+                            }
+
                             userVoucher.IsUsed = false;
-                            userVoucher.UsedDate = null;
+                            userVoucher.UsedDate = userVoucher.UsageCount > 0 ? userVoucher.UsedDate : null;
+                            userVoucher.LastUsedDate = userVoucher.UsageCount > 0 ? userVoucher.LastUsedDate : null;
+                            if (userVoucher.Voucher.CurrentUsageCount > 0)
+                            {
+                                userVoucher.Voucher.CurrentUsageCount -= 1;
+                            }
                         }
                     }
                 }
@@ -838,8 +861,13 @@ namespace AutoWashPro.BLL.Services
                     .FirstOrDefaultAsync(uv => uv.VoucherId == voucherId.Value && uv.UserId == userId);
 
                 if (userVoucher == null) throw new AutoWashPro.BLL.Exceptions.NotFoundException("Bạn không sở hữu Voucher này.");
-                if (userVoucher.IsUsed) throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher này đã được sử dụng.");
-                if (userVoucher.Voucher.ExpiryDate < DateTime.UtcNow) throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher này đã hết hạn.");
+                if (!userVoucher.Voucher.IsActive) throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher này chưa được kích hoạt.");
+                if (userVoucher.Voucher.StartDate.HasValue && userVoucher.Voucher.StartDate.Value > DateTime.UtcNow) throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher này chưa đến thời gian áp dụng.");
+                if (userVoucher.UsageCount >= userVoucher.Voucher.MaxUsagePerUser) throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher này đã hết lượt sử dụng của bạn.");
+                if (userVoucher.Voucher.MaxUsages > 0 && userVoucher.Voucher.CurrentUsageCount >= userVoucher.Voucher.MaxUsages) throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher này đã hết tổng lượt sử dụng.");
+                if (userVoucher.ExpiryDate < DateTime.UtcNow) throw new AutoWashPro.BLL.Exceptions.BadRequestException("Voucher này đã hết hạn.");
+                if (userVoucher.Voucher.MinOrderAmount > 0 && originalPrice < userVoucher.Voucher.MinOrderAmount)
+                    throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Voucher này chỉ áp dụng cho đơn từ {userVoucher.Voucher.MinOrderAmount:N0}đ.");
 
                 if (userVoucher.Voucher.VoucherType == AutoWashPro.DAL.Enums.VoucherType.PhysicalGift)
                 {
@@ -1156,8 +1184,11 @@ namespace AutoWashPro.BLL.Services
 
                 if (userVoucher != null)
                 {
-                    userVoucher.IsUsed = true;
+                    userVoucher.UsageCount += 1;
+                    userVoucher.IsUsed = userVoucher.UsageCount >= userVoucher.Voucher.MaxUsagePerUser;
                     userVoucher.UsedDate = DateTime.UtcNow;
+                    userVoucher.LastUsedDate = DateTime.UtcNow;
+                    userVoucher.Voucher.CurrentUsageCount += 1;
                 }
                 if (pointsUsed > 0)
                 {
