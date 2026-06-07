@@ -2,6 +2,9 @@ using AutoWashPro.BLL.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AutoWashPro.API.Workers
 {
@@ -35,8 +38,8 @@ namespace AutoWashPro.API.Workers
             try
             {
                 using var scope = _serviceProvider.CreateScope();
-                var campaignService = scope.ServiceProvider.GetRequiredService<IVoucherCampaignService>();
-                var results = await campaignService.ProcessDailyCampaignsAsync();
+                var crmCampaignService = scope.ServiceProvider.GetRequiredService<ICRMCampaignService>();
+                var results = await crmCampaignService.ProcessDailyCampaignsAsync();
 
                 foreach (var result in results)
                 {
