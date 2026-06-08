@@ -9,7 +9,7 @@ namespace AutoWashPro.API.Controllers
 {
     [Route("api/v1/admin/users")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Manager,Staff")]
     public class AdminUserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -42,6 +42,14 @@ namespace AutoWashPro.API.Controllers
             await _userService.UpdateCustomerStatusAsync(id, request.Status);
             var statusVn = request.Status == "Active" ? "Mở khóa" : "Khóa";
             return Ok(new { statusCode = 200, message = $"{statusVn} tài khoản thành công." });
+        }
+
+        [HttpPost("sync-points")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> SyncCustomerPoints()
+        {
+            await _userService.SyncCustomerProfilePointsAsync();
+            return Ok(new { statusCode = 200, message = "Đồng bộ điểm khách hàng thành công." });
         }
     }
 }

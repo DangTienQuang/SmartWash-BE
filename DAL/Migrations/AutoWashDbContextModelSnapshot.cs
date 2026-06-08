@@ -370,6 +370,82 @@ namespace DAL.Migrations
                     b.ToTable("Lanes");
                 });
 
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.ManagerProfile", b =>
+                {
+                    b.Property<int>("ManagerProfileId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("HiredDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Position")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ManagerProfileId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("ManagerProfiles");
+                });
+
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.OvertimeRequest", b =>
+                {
+                    b.Property<int>("OvertimeRequestId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time(6)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("ReviewedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StaffUserId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time(6)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("WorkDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("OvertimeRequestId");
+
+                    b.HasIndex("StaffUserId");
+
+                    b.ToTable("OvertimeRequests");
+                });
+
             modelBuilder.Entity("AutoWashPro.DAL.Entities.PointLedger", b =>
                 {
                     b.Property<int>("LedgerId")
@@ -462,6 +538,52 @@ namespace DAL.Migrations
                     b.ToTable("ServicePrices");
                 });
 
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.ShiftSwapRequest", b =>
+                {
+                    b.Property<int>("ShiftSwapRequestId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("FromAssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("RequestedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("ReviewedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("ToAssignmentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ShiftSwapRequestId");
+
+                    b.HasIndex("FromAssignmentId");
+
+                    b.HasIndex("ToAssignmentId");
+
+                    b.ToTable("ShiftSwapRequests");
+                });
+
             modelBuilder.Entity("AutoWashPro.DAL.Entities.StaffLaneAssignment", b =>
                 {
                     b.Property<int>("AssignmentId")
@@ -484,6 +606,75 @@ namespace DAL.Migrations
                     b.HasIndex("StaffId");
 
                     b.ToTable("StaffLaneAssignments");
+                });
+
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.StaffProfile", b =>
+                {
+                    b.Property<int>("StaffProfileId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("HiredDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Position")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("StaffProfileId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("StaffProfiles");
+                });
+
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.StaffShiftAssignment", b =>
+                {
+                    b.Property<int>("AssignmentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("StaffUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("WorkDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("WorkShiftId")
+                        .HasColumnType("int");
+
+                    b.HasKey("AssignmentId");
+
+                    b.HasIndex("WorkShiftId");
+
+                    b.HasIndex("StaffUserId", "WorkShiftId", "WorkDate")
+                        .IsUnique();
+
+                    b.ToTable("StaffShiftAssignments");
                 });
 
             modelBuilder.Entity("AutoWashPro.DAL.Entities.Tier", b =>
@@ -593,6 +784,13 @@ namespace DAL.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<DateTime?>("EmailVerificationOtpExpiresAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("EmailVerificationOtpHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -632,8 +830,23 @@ namespace DAL.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("ExpiryDate")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<bool>("IsUsed")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("LastUsedDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("ReceivedDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("TriggerKey")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("UsageCount")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UsedDate")
                         .HasColumnType("datetime(6)");
@@ -646,9 +859,10 @@ namespace DAL.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
-
                     b.HasIndex("VoucherId");
+
+                    b.HasIndex("UserId", "VoucherId", "TriggerKey")
+                        .IsUnique();
 
                     b.ToTable("UserVouchers");
                 });
@@ -727,10 +941,19 @@ namespace DAL.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<int>("CampaignType")
+                        .HasColumnType("int");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("CurrentUsageCount")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(65,30)");
@@ -738,16 +961,43 @@ namespace DAL.Migrations
                     b.Property<DateTime>("ExpiryDate")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<int?>("ExpiryDays")
+                        .HasColumnType("int");
+
                     b.Property<string>("ImageUrl")
                         .HasColumnType("longtext");
 
+                    b.Property<int?>("InactiveDays")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("MaxUsagePerUser")
+                        .HasColumnType("int");
+
                     b.Property<int>("MaxUsages")
                         .HasColumnType("int");
+
+                    b.Property<int?>("MilestoneUsageCount")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MinOrderAmount")
+                        .HasColumnType("decimal(65,30)");
 
                     b.Property<int>("PointsRequired")
                         .HasColumnType("int");
 
                     b.Property<int?>("RequiredTierId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ResendAfterDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("TargetAge")
                         .HasColumnType("int");
 
                     b.Property<TimeSpan?>("ValidEndTime")
@@ -760,6 +1010,9 @@ namespace DAL.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("VoucherId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
 
                     b.HasIndex("RequiredTierId");
 
@@ -788,6 +1041,31 @@ namespace DAL.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Wallets");
+                });
+
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.WorkShift", b =>
+                {
+                    b.Property<int>("WorkShiftId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time(6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("ShiftName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time(6)");
+
+                    b.HasKey("WorkShiftId");
+
+                    b.ToTable("WorkShifts");
                 });
 
             modelBuilder.Entity("DAL.Entities.AIConversationLog", b =>
@@ -1329,6 +1607,28 @@ namespace DAL.Migrations
                     b.Navigation("Branch");
                 });
 
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.ManagerProfile", b =>
+                {
+                    b.HasOne("AutoWashPro.DAL.Entities.User", "User")
+                        .WithOne("ManagerProfile")
+                        .HasForeignKey("AutoWashPro.DAL.Entities.ManagerProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.OvertimeRequest", b =>
+                {
+                    b.HasOne("AutoWashPro.DAL.Entities.User", "StaffUser")
+                        .WithMany()
+                        .HasForeignKey("StaffUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("StaffUser");
+                });
+
             modelBuilder.Entity("AutoWashPro.DAL.Entities.PointLedger", b =>
                 {
                     b.HasOne("AutoWashPro.DAL.Entities.User", "User")
@@ -1367,6 +1667,25 @@ namespace DAL.Migrations
                     b.Navigation("VehicleType");
                 });
 
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.ShiftSwapRequest", b =>
+                {
+                    b.HasOne("AutoWashPro.DAL.Entities.StaffShiftAssignment", "FromAssignment")
+                        .WithMany()
+                        .HasForeignKey("FromAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AutoWashPro.DAL.Entities.StaffShiftAssignment", "ToAssignment")
+                        .WithMany()
+                        .HasForeignKey("ToAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FromAssignment");
+
+                    b.Navigation("ToAssignment");
+                });
+
             modelBuilder.Entity("AutoWashPro.DAL.Entities.StaffLaneAssignment", b =>
                 {
                     b.HasOne("AutoWashPro.DAL.Entities.Lane", "Lane")
@@ -1384,6 +1703,36 @@ namespace DAL.Migrations
                     b.Navigation("Lane");
 
                     b.Navigation("Staff");
+                });
+
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.StaffProfile", b =>
+                {
+                    b.HasOne("AutoWashPro.DAL.Entities.User", "User")
+                        .WithOne("StaffProfile")
+                        .HasForeignKey("AutoWashPro.DAL.Entities.StaffProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.StaffShiftAssignment", b =>
+                {
+                    b.HasOne("AutoWashPro.DAL.Entities.User", "StaffUser")
+                        .WithMany()
+                        .HasForeignKey("StaffUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AutoWashPro.DAL.Entities.WorkShift", "WorkShift")
+                        .WithMany("Assignments")
+                        .HasForeignKey("WorkShiftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("StaffUser");
+
+                    b.Navigation("WorkShift");
                 });
 
             modelBuilder.Entity("AutoWashPro.DAL.Entities.TimeSlot", b =>
@@ -1655,7 +2004,11 @@ namespace DAL.Migrations
 
                     b.Navigation("LaneAssignments");
 
+                    b.Navigation("ManagerProfile");
+
                     b.Navigation("ProcessedBookings");
+
+                    b.Navigation("StaffProfile");
 
                     b.Navigation("Vehicles");
                 });
@@ -1670,6 +2023,9 @@ namespace DAL.Migrations
                     b.Navigation("Transactions");
                 });
 
+            modelBuilder.Entity("AutoWashPro.DAL.Entities.WorkShift", b =>
+                {
+                    b.Navigation("Assignments");
             modelBuilder.Entity("DAL.Entities.Invoice", b =>
                 {
                     b.Navigation("InvoiceItems");
