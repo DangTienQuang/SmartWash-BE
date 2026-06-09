@@ -163,7 +163,7 @@ builder.Services.AddScoped<IAIModerationService, AIModerationService>();
 builder.Services.AddHttpClient<ILLMService, GeminiAIService>();
 builder.Services.AddScoped<IAIIntentService, AIIntentService>();
 builder.Services.AddScoped<ILicensePlateService, LicensePlateService>();
-builder.Services.Configure<API.Configurations.CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+builder.Services.Configure<BLL.Helpers.CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 builder.Services.AddScoped<IPhotoService, PhotoService>();
 builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddScoped<ILaneService, LaneService>();
@@ -224,7 +224,7 @@ builder.Services.AddScoped<IBusinessService, BusinessService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IBookingAttendanceService, BookingAttendanceService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
-builder.Services.Configure<API.Configurations.CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+builder.Services.Configure<BLL.Helpers.CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 
 builder.Services.AddHostedService<AutoWashPro.API.Workers.AnnualTierResetWorker>();
 
@@ -232,7 +232,7 @@ builder.Services.AddSingleton(provider =>
 {
     var settings =
         provider.GetRequiredService<
-            IOptions<API.Configurations.CloudinarySettings>>()
+            IOptions<BLL.Helpers.CloudinarySettings>>()
         .Value;
 
     var account = new Account(
