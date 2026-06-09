@@ -125,7 +125,16 @@ namespace AutoWashPro.BLL.Services
                 }
 
                 await _context.SaveChangesAsync();
-                await SendRegistrationOtpEmailAsync(normalizedEmail, request.FullName, otp, otpExpiresAt);
+
+                try
+                {
+                    await SendRegistrationOtpEmailAsync(normalizedEmail, request.FullName, otp, otpExpiresAt);
+                }
+                catch (Exception ex)
+                {
+                    throw new BadRequestException($"Đăng ký bị từ chối do không thể gửi email OTP tới {normalizedEmail}. Lỗi máy chủ Email: {ex.Message}");
+                }
+
                 await transaction.CommitAsync();
 
                 return new RegisterPendingResponseDTO
