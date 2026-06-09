@@ -47,6 +47,7 @@ namespace API.Controllers
 
             return Ok(new
             {
+                statusCode = 200,
                 message = "Business registration submitted successfully. Waiting for approval.",
                 data = result
             });
