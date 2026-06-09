@@ -22,7 +22,20 @@ namespace API.Controllers
             _businessBookingService = businessBookingService;
         }
 
-        // Upload fleet file
+        [Authorize(Roles = "Business")]
+        [HttpGet("template")]
+        public async Task<IActionResult> DownloadTemplate()
+        {
+            var result = await _fleetService.GetFleetTemplateAsync();
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
         [Authorize(Roles = "Business")]
         [HttpPost("import")]
         [Consumes("multipart/form-data")]
@@ -38,7 +51,6 @@ namespace API.Controllers
             });
         }
 
-        // View pending vehicles
         [Authorize(Roles = "Business")]
         [HttpGet("pending")]
         public async Task<IActionResult> GetPendingVehicles()

@@ -5,6 +5,7 @@ using BLL.Services.Interface;
 using DAL.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
@@ -19,11 +20,13 @@ namespace BLL.Services
     {
         private readonly AutoWashDbContext _context;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly IConfiguration _configuration;
 
-        public FleetService(AutoWashDbContext context, ICloudinaryService cloudinaryService)
+        public FleetService(AutoWashDbContext context, ICloudinaryService cloudinaryService, IConfiguration configuration)
         {
             _context = context;
             _cloudinaryService = cloudinaryService;
+            _configuration = configuration;
         }
 
         public async Task<FleetImportResultDTO> ImportFleetAsync(int userId, IFormFile file)
@@ -425,6 +428,20 @@ namespace BLL.Services
                 .ToListAsync();
         }
 
+        public async Task<FleetTemplateDTO> GetFleetTemplateAsync()
+        {
+            var url = _configuration["FleetTemplate:DownloadUrl"];
 
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                throw new NotFoundException("Fleet template not configured.");
+            }
+
+            return await Task.FromResult(new FleetTemplateDTO
+            {
+                FileName = "FleetTemplate.xlsx",
+                DownloadUrl = url
+            });
+        }
     }
 }

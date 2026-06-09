@@ -21,5 +21,6 @@ namespace BLL.Services.Interface
         Task<List<FleetQueueDTO>> GetBusinessQueueAsync(int branchId);
         Task<FleetDashboardDTO> GetDashboardAsync(int businessUserId);
         Task<List<FleetWashHistoryDTO>> GetWashHistoryAsync(int businessUserId);
+        Task<FleetTemplateDTO> GetFleetTemplateAsync();
     }
 }
