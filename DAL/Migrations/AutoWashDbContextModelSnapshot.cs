@@ -1144,6 +1144,10 @@ namespace DAL.Migrations
                     b.Property<string>("AuthorizationLetterFileUrl")
                         .HasColumnType("longtext");
 
+                    b.Property<string>("BillingCycle")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.Property<string>("BillingEmail")
                         .HasColumnType("longtext");
 
@@ -1351,6 +1355,12 @@ namespace DAL.Migrations
                     b.Property<int>("FleetVehicleId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("LaneId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StaffUserId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .HasColumnType("longtext");
 
@@ -1364,6 +1374,10 @@ namespace DAL.Migrations
                     b.HasIndex("BranchId");
 
                     b.HasIndex("FleetVehicleId");
+
+                    b.HasIndex("LaneId");
+
+                    b.HasIndex("StaffUserId");
 
                     b.ToTable("FleetWashLogs");
                 });
@@ -1382,7 +1396,7 @@ namespace DAL.Migrations
 
                     b.Property<string>("InvoiceCode")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("InvoiceType")
                         .IsRequired()
@@ -1409,6 +1423,9 @@ namespace DAL.Migrations
                     b.HasIndex("BookingId");
 
                     b.HasIndex("BusinessProfileId");
+
+                    b.HasIndex("InvoiceCode")
+                        .IsUnique();
 
                     b.ToTable("Invoices");
                 });
@@ -1916,11 +1933,23 @@ namespace DAL.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("AutoWashPro.DAL.Entities.Lane", "Lane")
+                        .WithMany()
+                        .HasForeignKey("LaneId");
+
+                    b.HasOne("AutoWashPro.DAL.Entities.User", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffUserId");
+
                     b.Navigation("Booking");
 
                     b.Navigation("Branch");
 
                     b.Navigation("FleetVehicle");
+
+                    b.Navigation("Lane");
+
+                    b.Navigation("Staff");
                 });
 
             modelBuilder.Entity("DAL.Entities.Invoice", b =>
@@ -2026,12 +2055,13 @@ namespace DAL.Migrations
             modelBuilder.Entity("AutoWashPro.DAL.Entities.WorkShift", b =>
                 {
                     b.Navigation("Assignments");
-                    modelBuilder.Entity("DAL.Entities.Invoice", b =>
-                        {
-                            b.Navigation("InvoiceItems");
-                        });
-#pragma warning restore 612, 618
                 });
-    }
+
+            modelBuilder.Entity("DAL.Entities.Invoice", b =>
+                {
+                    b.Navigation("InvoiceItems");
+                });
+#pragma warning restore 612, 618
+        }
     }
 }
