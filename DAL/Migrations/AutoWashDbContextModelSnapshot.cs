@@ -2026,11 +2026,12 @@ namespace DAL.Migrations
             modelBuilder.Entity("AutoWashPro.DAL.Entities.WorkShift", b =>
                 {
                     b.Navigation("Assignments");
-            modelBuilder.Entity("DAL.Entities.Invoice", b =>
-                {
-                    b.Navigation("InvoiceItems");
-                });
+                    modelBuilder.Entity("DAL.Entities.Invoice", b =>
+                        {
+                            b.Navigation("InvoiceItems");
+                        });
 #pragma warning restore 612, 618
-        }
+                });
+    }
     }
 }
