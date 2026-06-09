@@ -221,6 +221,9 @@ namespace AutoWashPro.DAL.Data
                 .WithMany()
                 .HasForeignKey(i => i.BookingId)
                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Invoice>()
+                .HasIndex(x => x.InvoiceCode)
+                .IsUnique();
             modelBuilder.Entity<InvoiceItem>()
                 .HasOne(ii => ii.Invoice)
                 .WithMany(i => i.InvoiceItems)

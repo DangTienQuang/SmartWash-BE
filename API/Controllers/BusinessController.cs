@@ -3,6 +3,7 @@ using BLL.DTOs;
 using BLL.DTOs.Business;
 using BLL.DTOs.Fleet;
 using BLL.Helpers;
+using BLL.Services;
 using BLL.Services.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,14 +20,18 @@ namespace API.Controllers
         private readonly IBookingAttendanceService _attendanceService;
         private readonly IFleetService _fleetService;
         private readonly IBusinessBookingService _businessBookingService;
+        private readonly IInvoicePdfService _invoicePdfService;
 
-        public BusinessController(IBusinessService businessService, IInvoiceService invoiceService, IBookingAttendanceService attendanceService, IFleetService fleetService, IBusinessBookingService businessBookingService)
+        public BusinessController(IBusinessService businessService, IInvoiceService invoiceService,
+            IBookingAttendanceService attendanceService, IFleetService fleetService, IBusinessBookingService businessBookingService,
+                IInvoicePdfService invoicePdfService)
         {
             _businessService = businessService;
             _invoiceService = invoiceService;
             _attendanceService = attendanceService;
             _fleetService = fleetService;
             _businessBookingService = businessBookingService;
+            _invoicePdfService = invoicePdfService;
         }
 
         [Authorize(Roles = "Customer")]
@@ -119,7 +124,7 @@ namespace API.Controllers
         }
 
         [Authorize(Roles = "Business")]
-        [HttpPost("api/v1/business-bookings")]
+        [HttpPost("bookings")]
         public async Task<IActionResult> CreateBooking(CreateBusinessBookingDTO dto)
         {
             int userId = ClaimHelper.GetUserId(User);
@@ -244,7 +249,7 @@ namespace API.Controllers
 
         [Authorize(Roles = "Business")]
         [HttpGet("statements/monthly")]
-        public async Task<IActionResult> GetMonthlyStatement([FromQuery] int year,[FromQuery] int month)
+        public async Task<IActionResult> GetMonthlyStatement([FromQuery] int year, [FromQuery] int month)
         {
             int userId = ClaimHelper.GetUserId(User);
 
@@ -273,6 +278,21 @@ namespace API.Controllers
             {
                 statusCode = 200,
                 message = "Lane assigned successfully."
+            });
+        }
+
+        [HttpGet("invoices/{invoiceId}/export")]
+        [Authorize(Roles = "Business,Manager,Staff")]
+        public async Task<IActionResult> ExportInvoice(int invoiceId)
+        {
+            var result =
+                await _businessService.GetInvoiceExportAsync(invoiceId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
             });
         }
     }

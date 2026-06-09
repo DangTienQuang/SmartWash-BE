@@ -60,5 +60,36 @@ namespace BLL.DTOs.Business
         public decimal TotalCost { get; set; }
         public List<VehicleStatementDTO> Vehicles { get; set; } = new();
     }
+
+    public class GenerateMonthlyInvoiceRequest
+    {
+        public int BusinessProfileId { get; set; }
+        public int Year { get; set; }
+        public int Month { get; set; }
+    }
+
+    public class InvoiceExportDTO
+    {
+        public int InvoiceId { get; set; }
+        public string InvoiceCode { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string InvoiceType { get; set; } = string.Empty;
+        public string BusinessName { get; set; } = string.Empty;
+        public string TaxCode { get; set; } = string.Empty;
+        public string BusinessAddress { get; set; } = string.Empty;
+        public string BillingEmail { get; set; } = string.Empty;
+        public string RepresentativeName { get; set; } = string.Empty;
+        public string LicensePlate { get; set; } = string.Empty;
+        public string VehicleType { get; set; } = string.Empty;
+        public string BranchName { get; set; } = string.Empty;
+        public string BranchAddress { get; set; } = string.Empty;
+        public int BookingId { get; set; }
+        public string BillingPeriod { get; set; } = string.Empty;
+        public List<InvoiceItemDTO> Items { get; set; } = new();
+    }
 }
 

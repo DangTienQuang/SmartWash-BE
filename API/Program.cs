@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 using BLL.Services.Interface;
 using CloudinaryDotNet;
 using DAL.Data;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -19,6 +17,7 @@ using PayOS;
 using System.Linq;
 using System.Text;
 using System.Threading.RateLimiting;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -141,6 +140,8 @@ builder.Services.AddSingleton<PaddleOcrService>(sp =>
     return new PaddleOcrService(recModelPath, dictPath, logger);
 });
 
+QuestPDF.Settings.License = LicenseType.Community;
+
 // ==============================================================================
 // 6. DEPENDENCY INJECTION (BLL Services)
 // ==============================================================================
@@ -170,6 +171,7 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IManagerService, ManagerService>();
 builder.Services.AddScoped<IOperationStaffService, OperationStaffService>();
 builder.Services.AddScoped<IBusinessBookingService, BusinessBookingService>();
+builder.Services.AddScoped<IInvoicePdfService, InvoicePdfService>();
 
 builder.Services.AddScoped<IFleetService, FleetService>();
 // ==============================================================================

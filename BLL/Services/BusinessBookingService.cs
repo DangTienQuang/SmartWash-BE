@@ -146,7 +146,7 @@ namespace BLL.Services
 
                 _context.BookingDetails.Add(new BookingDetail
                 {
-                    BookingId = booking.BookingId,
+                    Booking = booking,
                     ServiceId = service.ServiceId,
                     Price = servicePrice.Price
                 });
@@ -308,6 +308,7 @@ namespace BLL.Services
         {
             var booking = await _context.Bookings
                 .Include(x => x.FleetVehicle)
+                .Include(x => x.BookingDetails)
                 .FirstOrDefaultAsync(x =>
                     x.BookingId == bookingId);
 
@@ -562,93 +563,30 @@ namespace BLL.Services
                 throw new NotFoundException("Wash log not found.");
             }
 
-            decimal totalAmount = 0;
-
-            Invoice invoice;
-
             if (washLog.BookingId.HasValue)
             {
                 var booking = washLog.Booking!;
 
-                totalAmount = booking.FinalAmount;
-
-                invoice = new Invoice
-                {
-                    InvoiceCode = $"INV-{DateTime.UtcNow:yyyyMMddHHmmss}",
-                    BookingId = booking.BookingId,
-                    BusinessProfileId = booking.BusinessProfileId,
-                    InvoiceType = "FleetWash",
-                    Subtotal = totalAmount,
-                    TaxAmount = 0,
-                    TotalAmount = totalAmount,
-                    Status = "Issued",
-                    IssuedAt = DateTime.UtcNow
-                };
-
-                _context.Invoices.Add(invoice);
-
-                await _context.SaveChangesAsync();
-
-                foreach (var detail in booking.BookingDetails)
-                {
-                    var service = await _context.Services
-                        .FirstOrDefaultAsync(x => x.ServiceId == detail.ServiceId);
-
-                    _context.InvoiceItems.Add(new InvoiceItem
-                    {
-                        InvoiceId = invoice.InvoiceId,
-                        BookingDetailId = detail.DetailId,
-                        Description = service?.ServiceName ?? "Fleet Service",
-                        Quantity = 1,
-                        UnitPrice = detail.Price,
-                        Amount = detail.Price
-                    });
-                }
             }
-            else
+
+            if (washLog.Status != "Processing")
             {
-                // Walk-in Fleet
-
-                totalAmount = washLog.WashCost;
-
-                invoice = new Invoice
-                {
-                    InvoiceCode = $"INV-{DateTime.UtcNow:yyyyMMddHHmmss}",
-                    BookingId = 0, // walk in can still be calculate
-                    InvoiceType = "FleetWalkIn",
-                    Subtotal = totalAmount,
-                    TaxAmount = 0,
-                    TotalAmount = totalAmount,
-                    Status = "Issued",
-                    IssuedAt = DateTime.UtcNow
-                };
-
-                _context.Invoices.Add(invoice);
-
-                await _context.SaveChangesAsync();
-
-                _context.InvoiceItems.Add(new InvoiceItem
-                {
-                    InvoiceId = invoice.InvoiceId,
-                    BookingDetailId = 0,
-                    Description = "Fleet Walk-in Wash",
-                    Quantity = 1,
-                    UnitPrice = totalAmount,
-                    Amount = totalAmount
-                });
+                throw new BadRequestException("Only processing vehicles can be checked out.");
             }
 
             washLog.Status = "Completed";
             washLog.CompletedTime = DateTime.UtcNow;
+
+            if (washLog.Booking.Status != null)
+            {
+                washLog.Booking.Status = "Completed";
+            }
 
             await _context.SaveChangesAsync();
 
             return new FleetCheckoutResponseDTO
             {
                 FleetWashLogId = washLog.FleetWashLogId,
-                InvoiceId = invoice.InvoiceId,
-                InvoiceCode = invoice.InvoiceCode,
-                TotalAmount = invoice.TotalAmount,
                 CompletedTime = washLog.CompletedTime.Value
             };
         }

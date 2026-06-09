@@ -126,19 +126,6 @@ namespace API.Controllers
             });
         }
 
-        //[Authorize(Roles = "Staff,Manager")]
-        //[HttpPost("{id}/complete")]
-        //public async Task<IActionResult> Complete(int id)
-        //{
-        //    await _businessBookingService.CompleteWashAsync(id);
-
-        //    return Ok(new
-        //    {
-        //        statusCode = 200,
-        //        message = "Wash completed."
-        //    });
-        //}
-
         [Authorize(Roles = "Staff,Manager")]
         [HttpPost("walk-in")]
         public async Task<IActionResult> WalkIn([FromBody] FleetWalkInDTO dto)

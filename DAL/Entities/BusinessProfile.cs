@@ -27,6 +27,7 @@ namespace DAL.Entities
         public string? RepresentativeName { get; set; }
 
         public int? PaymentTermDays { get; set; }
+        public string BillingCycle { get; set; } = "Monthly"; //Monthly, Quarterly, Yearly
 
         public DateTime CreatedAt { get; set; }
         public string ApprovalStatus { get; set; } = "Pending";
