@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(AutoWashDbContext))]
-    [Migration("20260610141259_InitialCreate")]
+    [Migration("20260610173624_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
