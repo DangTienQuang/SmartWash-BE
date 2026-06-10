@@ -1006,9 +1006,6 @@ namespace DAL.Migrations
                     b.Property<TimeSpan?>("ValidStartTime")
                         .HasColumnType("time(6)");
 
-                    b.Property<int?>("VehicleTypeId")
-                        .HasColumnType("int");
-
                     b.Property<int>("VoucherType")
                         .HasColumnType("int");
 
@@ -1018,8 +1015,6 @@ namespace DAL.Migrations
                         .IsUnique();
 
                     b.HasIndex("RequiredTierId");
-
-                    b.HasIndex("VehicleTypeId");
 
                     b.ToTable("Vouchers");
                 });
@@ -1827,13 +1822,7 @@ namespace DAL.Migrations
                         .WithMany()
                         .HasForeignKey("RequiredTierId");
 
-                    b.HasOne("AutoWashPro.DAL.Entities.VehicleType", "VehicleType")
-                        .WithMany()
-                        .HasForeignKey("VehicleTypeId");
-
                     b.Navigation("RequiredTier");
-
-                    b.Navigation("VehicleType");
                 });
 
             modelBuilder.Entity("AutoWashPro.DAL.Entities.Wallet", b =>
