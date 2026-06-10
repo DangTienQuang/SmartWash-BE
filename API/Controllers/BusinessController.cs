@@ -34,26 +34,8 @@ namespace API.Controllers
             _invoicePdfService = invoicePdfService;
         }
 
-        //[Authorize(Roles = "Customer")]
-        //[HttpPost("register")]
-        //public async Task<IActionResult> RegisterBusiness([FromForm] CreateBusinessProfileRequest request)
-        //{
-        //    if (request == null)
-        //        throw new BadRequestException("Request body is required.");
-
-        //    int userId = ClaimHelper.GetUserId(User);
-
-        //    var result = await _businessService.CreateBusinessProfileAsync(userId, request);
-
-        //    return Ok(new
-        //    {
-        //        statusCode = 200,
-        //        message = "Business registration submitted successfully. Waiting for approval.",
-        //        data = result
-        //    });
-        //}
-
-        [HttpPost("register/business")]
+        [AllowAnonymous]
+        [HttpPost("register")]
         public async Task<IActionResult> RegisterBusinessUser([FromForm] RegisterBusinessUserRequest request)
         {
             var result = await _businessService.RegisterBusinessUserAsync(request);
@@ -266,8 +248,7 @@ namespace API.Controllers
         {
             int userId = ClaimHelper.GetUserId(User);
 
-            var result =
-                await _businessBookingService
+            var result = await _businessBookingService
                     .GetMonthlyStatementAsync(
                         userId,
                         year,

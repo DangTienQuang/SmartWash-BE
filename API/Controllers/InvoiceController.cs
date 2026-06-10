@@ -69,7 +69,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Monthly invoice generated successfully.",
+                message = "Tạo hoá đơn tháng thành công.",
                 InvoiceId = invoiceId
             });
         }
