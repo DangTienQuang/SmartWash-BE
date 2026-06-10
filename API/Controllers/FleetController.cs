@@ -46,7 +46,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Fleet imported successfully.",
+                message = "Nhập danh sách phương tiện thành công.",
                 data = result
             });
         }
@@ -77,7 +77,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Fleet vehicle approved."
+                message = "Phương tiện đã được phê duyệt."
             });
         }
 
@@ -91,7 +91,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Fleet vehicle rejected."
+                message = "Phương tiện đã bị từ chối."
             });
         }
 
@@ -147,7 +147,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Fleet vehicle checked in successfully.",
+                message = "Phương tiện đã được tiếp nhận thành công.",
                 data = result
             });
         }
@@ -161,7 +161,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Fleet vehicle checked out successfully."
+                message = "Phương tiện xuất bãi thành công."
             });
         }
 
@@ -176,7 +176,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Vehicle moved to processing."
+                message = "Phương tiện đã chuyển sang trạng thái xử lý."
             });
         }
 
@@ -252,7 +252,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Check out successful.",
+                message = "Check Out thành công.",
                 data = result
             });
         }
