@@ -34,21 +34,33 @@ namespace API.Controllers
             _invoicePdfService = invoicePdfService;
         }
 
-        [Authorize(Roles = "Customer")]
-        [HttpPost("register")]
-        public async Task<IActionResult> RegisterBusiness([FromForm] CreateBusinessProfileRequest request)
+        //[Authorize(Roles = "Customer")]
+        //[HttpPost("register")]
+        //public async Task<IActionResult> RegisterBusiness([FromForm] CreateBusinessProfileRequest request)
+        //{
+        //    if (request == null)
+        //        throw new BadRequestException("Request body is required.");
+
+        //    int userId = ClaimHelper.GetUserId(User);
+
+        //    var result = await _businessService.CreateBusinessProfileAsync(userId, request);
+
+        //    return Ok(new
+        //    {
+        //        statusCode = 200,
+        //        message = "Business registration submitted successfully. Waiting for approval.",
+        //        data = result
+        //    });
+        //}
+
+        [HttpPost("register/business")]
+        public async Task<IActionResult> RegisterBusinessUser([FromForm] RegisterBusinessUserRequest request)
         {
-            if (request == null)
-                throw new BadRequestException("Request body is required.");
-
-            int userId = ClaimHelper.GetUserId(User);
-
-            var result = await _businessService.CreateBusinessProfileAsync(userId, request);
-
+            var result = await _businessService.RegisterBusinessUserAsync(request);
             return Ok(new
             {
                 statusCode = 200,
-                message = "Business registration submitted successfully. Waiting for approval.",
+                message = "Đăng ký tài khoản doanh nghiệp thành công. Đang chờ quản trị viên phê duyệt.",
                 data = result
             });
         }
@@ -62,7 +74,7 @@ namespace API.Controllers
             var result = await _businessService.GetByUserIdAsync(userId);
 
             if (result == null)
-                throw new NotFoundException("Business profile not found.");
+                throw new NotFoundException("Không tìm thấy hồ sơ cho doanh nghiệp.");
 
             return Ok(new
             {
@@ -72,8 +84,8 @@ namespace API.Controllers
             });
         }
 
-        [Authorize(Roles = "Staff,Manager")]
-        [HttpPost("staff/review-application")]
+        [Authorize(Roles = "Admin")]
+        [HttpPost("admin/review-application")]
         public async Task<IActionResult> ReviewBusinessProfile([FromBody] ReviewBusinessProfileDTO dto)
         {
             if (dto == null)
@@ -86,12 +98,12 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Business registration reviewed."
+                message = "Đã xét duyệt hồ sơ cho doanh nghiệp."
             });
         }
 
-        [Authorize(Roles = "Staff,Manager")]
-        [HttpGet("staff/pending-applications")]
+        [Authorize(Roles = "Admin")]
+        [HttpGet("admin/pending-applications")]
         public async Task<IActionResult> GetPendingApplications()
         {
             var result = await _businessService.GetPendingBusinessApplicationsAsync();
@@ -104,17 +116,17 @@ namespace API.Controllers
             });
         }
 
-        [Authorize(Roles = "Staff,Manager")]
-        [HttpGet("staff/application/{businessProfileId}")]
+        [Authorize(Roles = "Admin")]
+        [HttpGet("admin/application/{businessProfileId}")]
         public async Task<IActionResult> GetApplicationDetail(int businessProfileId)
         {
             if (businessProfileId <= 0)
-                throw new BadRequestException("Invalid business profile ID.");
+                throw new BadRequestException("Profile ID không hợp lệ.");
 
             var result = await _businessService.GetBusinessApplicationDetailAsync(businessProfileId);
 
             if (result == null)
-                throw new NotFoundException($"Application with ID {businessProfileId} not found.");
+                throw new NotFoundException($"Không tìm thấy Hồ sơ có ID {businessProfileId}.");
 
             return Ok(new
             {
@@ -199,7 +211,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Booking cancelled successfully."
+                message = "Huỷ đặt lịch thành công."
             });
         }
 
@@ -278,7 +290,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Lane assigned successfully."
+                message = "Phân làn rửa cho phương tiện thành công."
             });
         }
 
