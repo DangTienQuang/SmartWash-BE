@@ -552,7 +552,7 @@ namespace AutoWashPro.BLL.Services
                 {
                     await _context.SaveChangesAsync();
                 }
-                catch (DbUpdateException ex)
+                catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("Duplicate entry") == true)
                 {
                     _context.Entry(dailyCapacity).State = EntityState.Detached;
                     dailyCapacity = await _context.DailySlotCapacities.FirstAsync(dc => dc.SlotId == slot.SlotId && dc.BranchId == request.BranchId && dc.Date == targetDateTime.Date);
@@ -1151,7 +1151,7 @@ namespace AutoWashPro.BLL.Services
                     };
                     _context.DailySlotCapacities.Add(dailyCapacity);
                     try { await _context.SaveChangesAsync(); }
-                    catch (DbUpdateException ex)
+                    catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("Duplicate entry") == true)
                     {
                         _context.Entry(dailyCapacity).State = EntityState.Detached;
                         dailyCapacity = await _context.DailySlotCapacities.FirstAsync(dc => dc.SlotId == slot.SlotId && dc.BranchId == slot.BranchId && dc.Date == targetDateTime.Date);
