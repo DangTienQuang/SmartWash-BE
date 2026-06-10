@@ -351,7 +351,51 @@ namespace AutoWashPro.BLL.Services
 
             return _emailService.SendEmailAsync(email, "[SmartWash] Mã OTP xác thực đăng ký", html);
         }
+        public async Task<RegisterPendingResponseDTO> ResendOtpAsync(ResendOtpDTO request)
+        {
+            var normalizedEmail = request.Email.Trim().ToLower();
 
+            // Tìm user dựa trên email
+            var user = await _context.Users
+                .Include(u => u.CustomerProfile)
+                .FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == normalizedEmail);
+
+            if (user == null)
+                throw new NotFoundException("Không tìm thấy tài khoản nào đăng ký bằng email này.");
+
+            if (user.Status != UserStatuses.Pending)
+                throw new BadRequestException("Tài khoản đã được xác thực hoặc đang ở trạng thái không hợp lệ.");
+
+            // Sinh OTP mới và set lại thời gian 10 phút
+            var otp = GenerateOtp();
+            var otpHash = HashOtp(otp);
+            var otpExpiresAt = DateTime.UtcNow.AddMinutes(10);
+
+            user.EmailVerificationOtpHash = otpHash;
+            user.EmailVerificationOtpExpiresAt = otpExpiresAt;
+
+            await _context.SaveChangesAsync();
+
+            // Gửi email mới
+            var fullName = user.CustomerProfile?.FullName ?? "Quý khách";
+            try
+            {
+                await SendRegistrationOtpEmailAsync(normalizedEmail, fullName, otp, otpExpiresAt);
+            }
+            catch (Exception ex)
+            {
+                throw new BadRequestException($"Không thể gửi email OTP mới. Lỗi máy chủ Email: {ex.Message}");
+            }
+
+            // Trả về response y hệt như lúc Register để FE hiển thị lại bộ đếm ngược
+            return new RegisterPendingResponseDTO
+            {
+                UserId = user.UserId,
+                Email = normalizedEmail,
+                Status = user.Status,
+                OtpExpiresAt = otpExpiresAt
+            };
+        }
         private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
         {
             var tokenValidationParameters = new TokenValidationParameters
