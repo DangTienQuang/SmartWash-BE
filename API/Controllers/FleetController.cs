@@ -110,7 +110,7 @@ namespace API.Controllers
         }
 
         [Authorize(Roles = "Manager,Staff")]
-        [HttpGet("fleet/imports")]
+        [HttpGet("staff/imports")]
         public async Task<IActionResult> GetImports()
         {
             var result = await _fleetService.GetImportBatchesAsync();
@@ -124,7 +124,7 @@ namespace API.Controllers
         }
 
         [Authorize(Roles = "Manager,Staff")]
-        [HttpGet("fleet/imports/{batchId}")]
+        [HttpGet("staff/imports/{batchId}")]
         public async Task<IActionResult> GetImportDetail(int batchId)
         {
             var result = await _fleetService.GetImportBatchDetailAsync(batchId);
