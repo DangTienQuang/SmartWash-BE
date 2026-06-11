@@ -67,9 +67,9 @@ namespace API.Controllers
             });
         }
 
-        // Staff review vehicle
-        [Authorize(Roles = "Staff,Manager")]
-        [HttpPost("staff/approve/{id}")]
+        // Admin review vehicle
+        [Authorize(Roles = "Admin")]
+        [HttpPost("admin/approve/{id}")]
         public async Task<IActionResult> ApproveVehicle(int id)
         {
             await _fleetService.ApproveFleetVehicleAsync(id);
@@ -81,9 +81,9 @@ namespace API.Controllers
             });
         }
 
-        // Staff reject vehicle
-        [Authorize(Roles = "Staff,Manager")]
-        [HttpPost("staff/reject/{id}")]
+        // Admin reject vehicle
+        [Authorize(Roles = "Admin")]
+        [HttpPost("admin/reject/{id}")]
         public async Task<IActionResult> RejectVehicle(int id, [FromBody] ReviewFleetImportDTO dto)
         {
             await _fleetService.RejectFleetVehicleAsync(id, dto.RejectionReason);
@@ -95,7 +95,7 @@ namespace API.Controllers
             });
         }
 
-        [Authorize(Roles = "Manager,Staff")]
+        [Authorize(Roles = "Admin")]
         [HttpGet("fleet/imports")]
         public async Task<IActionResult> GetImports()
         {
@@ -109,7 +109,7 @@ namespace API.Controllers
             });
         }
 
-        [Authorize(Roles = "Manager,Staff")]
+        [Authorize(Roles = "Admin")]
         [HttpGet("fleet/imports/{batchId}")]
         public async Task<IActionResult> GetImportDetail(int batchId)
         {
