@@ -119,6 +119,21 @@ namespace API.Controllers
         }
 
         [Authorize(Roles = "Business")]
+        [HttpGet("available-slots")]
+        public async Task<IActionResult> GetAvailableSlots([FromQuery] CheckBusinessSlotsRequestDTO request)
+        {
+            int userId = ClaimHelper.GetUserId(User);
+            var result = await _businessBookingService.GetAvailableSlotsForBusinessAsync(userId, request);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
         [HttpPost("bookings")]
         public async Task<IActionResult> CreateBooking(CreateBusinessBookingDTO dto)
         {

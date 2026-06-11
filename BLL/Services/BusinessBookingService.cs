@@ -1,4 +1,5 @@
-﻿using AutoWashPro.BLL.Exceptions;
+﻿using AutoWashPro.BLL.DTOs;
+using AutoWashPro.BLL.Exceptions;
 using AutoWashPro.DAL.Data;
 using AutoWashPro.DAL.Entities;
 using BLL.DTOs;
@@ -854,6 +855,113 @@ namespace BLL.Services
             washLog.Status = "Assigned";
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<TimeSlotResponseDTO>> GetAvailableSlotsForBusinessAsync(int businessUserId, CheckBusinessSlotsRequestDTO request)
+        {
+            // 1. Verify business + vehicle ownership
+            var business = await _context.BusinessProfiles
+                .FirstOrDefaultAsync(x => x.UserId == businessUserId && x.ApprovalStatus == "Approved");
+
+            if (business == null)
+                throw new NotFoundException("Business profile not found or not approved.");
+
+            var fleetVehicle = await _context.FleetVehicles
+                .Include(x => x.VehicleType)
+                .FirstOrDefaultAsync(x =>
+                    x.FleetVehicleId == request.FleetVehicleId &&
+                    x.BusinessProfileId == business.BusinessProfileId &&
+                    x.Status == "Active");
+
+            if (fleetVehicle == null)
+                throw new NotFoundException("Fleet vehicle not found or not active.");
+
+            // 2. Timezone (same cross-platform pattern as customer slot checker)
+            TimeZoneInfo vnTimeZone;
+            try { vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"); }
+            catch (TimeZoneNotFoundException) { vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh"); }
+
+            DateTime todayInVN = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone).Date;
+            TimeSpan currentTimeInVN = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone).TimeOfDay;
+
+            // No tier booking window — business can book as far ahead as needed
+            if (request.TargetDate.Date < todayInVN)
+                throw new BadRequestException("Không thể đặt lịch cho ngày trong quá khứ.");
+
+            // 3. Calculate capacity weight from services (same logic as customer version)
+            int totalRequestWeight = 0;
+            if (request.ServiceIds.Any())
+            {
+                int baseWeight = fleetVehicle.VehicleType?.BaseWeight ?? 0;
+
+                foreach (var serviceId in request.ServiceIds)
+                {
+                    var servicePrice = await _context.ServicePrices
+                        .FirstOrDefaultAsync(sp =>
+                            sp.ServiceId == serviceId &&
+                            sp.VehicleTypeId == fleetVehicle.VehicleTypeId &&
+                            sp.BranchId == request.BranchId);
+
+                    // Mirror the same fallback: servicePrice weight → baseWeight
+                    var actualWeight = servicePrice?.CapacityWeight > 0
+                        ? servicePrice.CapacityWeight
+                        : baseWeight;
+
+                    if (actualWeight > totalRequestWeight)
+                        totalRequestWeight = actualWeight;
+                }
+            }
+            else
+            {
+                // No services selected yet — use vehicle base weight as minimum estimate
+                totalRequestWeight = fleetVehicle.VehicleType?.BaseWeight ?? 0;
+            }
+
+            // 4. Load slots and daily booked weights
+            var allSlots = await _context.TimeSlots
+                .Where(s => s.BranchId == request.BranchId)
+                .OrderBy(s => s.StartTime)
+                .ToListAsync();
+
+            var dailyCapacities = await _context.DailySlotCapacities
+                .Where(dc => dc.BranchId == request.BranchId && dc.Date == request.TargetDate.Date)
+                .ToDictionaryAsync(dc => dc.SlotId, dc => dc.BookedWeight);
+
+            // 5. Build response — no VIP check needed for business accounts
+            var response = new List<TimeSlotResponseDTO>();
+
+            foreach (var slot in allSlots)
+            {
+                var slotDto = new TimeSlotResponseDTO
+                {
+                    SlotId = slot.SlotId,
+                    TimeRange = $"{slot.StartTime:hh\\:mm} - {slot.EndTime:hh\\:mm}",
+                    IsAvailable = true,
+                    Reason = "Trống"
+                };
+
+                // Past time check
+                if (request.TargetDate.Date == todayInVN && slot.StartTime < currentTimeInVN)
+                {
+                    slotDto.IsAvailable = false;
+                    slotDto.Reason = "Đã qua giờ";
+                }
+
+                // Capacity check
+                int bookedWeight = dailyCapacities.TryGetValue(slot.SlotId, out int weight) ? weight : 0;
+
+                if (bookedWeight + totalRequestWeight > slot.MaxCapacity)
+                {
+                    slotDto.IsAvailable = false;
+                    slotDto.Reason = totalRequestWeight > 0
+                        ? "Không đủ sức chứa cho phương tiện này"
+                        : "Đã kín chỗ";
+                }
+
+                response.Add(slotDto);
+            }
+
+            return response;
         }
     }
 }
