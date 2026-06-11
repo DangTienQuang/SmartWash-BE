@@ -244,6 +244,39 @@ namespace BLL.Services
                 .ToListAsync();
         }
 
+        public async Task<List<StaffPendingVehicleDTO>> GetAllPendingVehiclesAsync(int? businessProfileId = null)
+        {
+            var query = _context.FleetVehicles
+                .Include(x => x.VehicleType)
+                .Include(x => x.BusinessProfile)
+                .Where(x => x.Status == "PendingApproval")
+                .AsQueryable();
+
+            if (businessProfileId.HasValue)
+            {
+                query = query.Where(x => x.BusinessProfileId == businessProfileId.Value);
+            }
+
+            return await query
+                .OrderBy(x => x.CreatedAt)
+                .Select(x => new StaffPendingVehicleDTO
+                {
+                    FleetVehicleId = x.FleetVehicleId,
+                    LicensePlate = x.LicensePlate,
+                    Brand = x.Brand,
+                    Model = x.Model,
+                    VehicleTypeName = x.VehicleType.Name,
+                    DriverName = x.DriverName,
+                    EmployeeId = x.EmployeeCode,
+                    Status = x.Status,
+                    BusinessName = x.BusinessProfile.CompanyName,
+                    BusinessProfileId = x.BusinessProfileId,
+                    FleetImportBatchId = x.FleetImportBatchId,
+                    CreatedAt = x.CreatedAt
+                })
+                .ToListAsync();
+        }
+
         public async Task ApproveFleetVehicleAsync(int fleetVehicleId)
         {
             var vehicle = await _context.FleetVehicles.FirstOrDefaultAsync(x => x.FleetVehicleId == fleetVehicleId);

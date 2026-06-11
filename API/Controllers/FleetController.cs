@@ -51,13 +51,27 @@ namespace API.Controllers
             });
         }
 
-        [Authorize(Roles = "Business, Staff, Manager")]
+        [Authorize(Roles = "Business")]
         [HttpGet("pending")]
         public async Task<IActionResult> GetPendingVehicles()
         {
             int userId = ClaimHelper.GetUserId(User);
 
             var result = await _fleetService.GetPendingVehiclesAsync(userId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Staff,Manager")]
+        [HttpGet("staff/pending/all")]
+        public async Task<IActionResult> GetAllPendingVehicles([FromQuery] int? businessProfileId = null)
+        {
+            var result = await _fleetService.GetAllPendingVehiclesAsync(businessProfileId);
 
             return Ok(new
             {
