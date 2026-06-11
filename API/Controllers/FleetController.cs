@@ -51,7 +51,7 @@ namespace API.Controllers
             });
         }
 
-        [Authorize(Roles = "Business")]
+        [Authorize(Roles = "Business, Staff, Manager")]
         [HttpGet("pending")]
         public async Task<IActionResult> GetPendingVehicles()
         {
