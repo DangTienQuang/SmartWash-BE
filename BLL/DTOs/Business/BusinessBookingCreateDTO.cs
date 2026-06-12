@@ -8,10 +8,10 @@ namespace BLL.DTOs.Business
 {
     public class CreateBusinessBookingDTO
     {
-        public int FleetVehicleId { get; set; }
+        public List<int> FleetVehicleIds { get; set; } = new();
         public int BranchId { get; set; }
         public int SlotId { get; set; }
         public DateTime ScheduledTime { get; set; }
-        public List<int> ServiceIds { get; set; } = [];
+        public List<int> ServiceIds { get; set; } = new();
     }
 }
