@@ -67,7 +67,7 @@ namespace API.Controllers
             });
         }
 
-        [Authorize(Roles = "Staff,Manager")]
+        [Authorize(Roles = "Staff, Manager")]
         [HttpGet("staff/pending/all")]
         public async Task<IActionResult> GetAllPendingVehicles([FromQuery] int? businessProfileId = null)
         {
