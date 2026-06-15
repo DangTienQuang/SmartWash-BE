@@ -1,4 +1,5 @@
-﻿using BLL.DTOs;
+﻿using AutoWashPro.BLL.DTOs;
+using BLL.DTOs;
 using BLL.DTOs.Business;
 using BLL.DTOs.Fleet;
 using System;
@@ -30,5 +31,6 @@ namespace BLL.Services.Interface
         Task<InvoiceDetailDTO> GetInvoiceDetailAsync(int businessUserId, int invoiceId);
         Task<MonthlyStatementDTO> GetMonthlyStatementAsync(int businessUserId, int year, int month);
         Task AssignLaneAsync(int washLogId, AssignLaneDTO dto);
+        Task<List<TimeSlotResponseDTO>> GetAvailableSlotsForBusinessAsync(int businessUserId, CheckBusinessSlotsRequestDTO request);
     }
 }

@@ -46,7 +46,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Fleet imported successfully.",
+                message = "Nhập danh sách phương tiện thành công.",
                 data = result
             });
         }
@@ -67,6 +67,20 @@ namespace API.Controllers
             });
         }
 
+        [Authorize(Roles = "Staff,Manager")]
+        [HttpGet("staff/pending/all")]
+        public async Task<IActionResult> GetAllPendingVehicles([FromQuery] int? businessProfileId = null)
+        {
+            var result = await _fleetService.GetAllPendingVehiclesAsync(businessProfileId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
         // Staff review vehicle
         [Authorize(Roles = "Staff,Manager")]
         [HttpPost("staff/approve/{id}")]
@@ -77,7 +91,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Fleet vehicle approved."
+                message = "Phương tiện đã được phê duyệt."
             });
         }
 
@@ -91,12 +105,12 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Fleet vehicle rejected."
+                message = "Phương tiện đã bị từ chối."
             });
         }
 
         [Authorize(Roles = "Manager,Staff")]
-        [HttpGet("fleet/imports")]
+        [HttpGet("staff/imports")]
         public async Task<IActionResult> GetImports()
         {
             var result = await _fleetService.GetImportBatchesAsync();
@@ -110,7 +124,7 @@ namespace API.Controllers
         }
 
         [Authorize(Roles = "Manager,Staff")]
-        [HttpGet("fleet/imports/{batchId}")]
+        [HttpGet("staff/imports/{batchId}")]
         public async Task<IActionResult> GetImportDetail(int batchId)
         {
             var result = await _fleetService.GetImportBatchDetailAsync(batchId);
@@ -147,7 +161,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Fleet vehicle checked in successfully.",
+                message = "Phương tiện đã được tiếp nhận thành công.",
                 data = result
             });
         }
@@ -161,7 +175,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Fleet vehicle checked out successfully."
+                message = "Phương tiện xuất bãi thành công."
             });
         }
 
@@ -176,7 +190,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Vehicle moved to processing."
+                message = "Phương tiện đã chuyển sang trạng thái xử lý."
             });
         }
 
@@ -252,7 +266,7 @@ namespace API.Controllers
             return Ok(new
             {
                 statusCode = 200,
-                message = "Check out successful.",
+                message = "Check Out thành công.",
                 data = result
             });
         }

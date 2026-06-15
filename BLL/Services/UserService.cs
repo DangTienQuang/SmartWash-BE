@@ -36,6 +36,8 @@ namespace AutoWashPro.BLL.Services
             return new UserProfileDTO
             {
                 UserId = user.UserId,
+                Email = user.Email,     
+                Status = user.Status,   
                 FullName = user.CustomerProfile?.FullName,
                 PhoneNumber = user.PhoneNumber,
                 TierName = user.CustomerProfile?.Tier?.TierName,
@@ -55,7 +57,6 @@ namespace AutoWashPro.BLL.Services
                 DateOfBirth = user.CustomerProfile?.DateOfBirth
             };
         }
-
         public async Task<bool> UpdateProfileAsync(int userId, UpdateUserProfileDTO request)
         {
             var user = await _context.Users
@@ -126,6 +127,7 @@ namespace AutoWashPro.BLL.Services
             {
                 var keyword = searchKeyword.Trim().ToLower();
                 query = query.Where(u => u.PhoneNumber.Contains(keyword)
+                                      || (u.Email != null && u.Email.ToLower().Contains(keyword))
                                       || (u.CustomerProfile != null && u.CustomerProfile.FullName.ToLower().Contains(keyword)));
             }
 
@@ -143,6 +145,7 @@ namespace AutoWashPro.BLL.Services
                 .Select(u => new UserAdminSummaryDTO
                 {
                     UserId = u.UserId,
+                    Email = u.Email,
                     FullName = u.CustomerProfile != null ? u.CustomerProfile.FullName : "N/A",
                     PhoneNumber = u.PhoneNumber,
                     TierName = u.CustomerProfile != null && u.CustomerProfile.Tier != null ? u.CustomerProfile.Tier.TierName : "N/A",
