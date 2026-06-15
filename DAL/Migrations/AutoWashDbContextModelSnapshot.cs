@@ -887,6 +887,13 @@ namespace DAL.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
+                    b.Property<int?>("ManufactureYear")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ModelVersion")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
                     b.Property<string>("RegistrationPhotoUrl")
                         .HasColumnType("longtext");
 

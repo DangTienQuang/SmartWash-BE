@@ -8,7 +8,7 @@ namespace AutoWashPro.API.Controllers
 {
     [Route("api/v1/admin/vehicles")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
     public class AdminVehicleController : ControllerBase
     {
         private readonly IVehicleService _vehicleService;
@@ -26,6 +26,7 @@ namespace AutoWashPro.API.Controllers
         }
 
         [HttpPut("{licensePlate}/type")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateVehicleType(string licensePlate, [FromBody] UpdateVehicleTypeAdminDTO request)
         {
             await _vehicleService.UpdateVehicleTypeByAdminAsync(licensePlate, request.VehicleTypeId);
