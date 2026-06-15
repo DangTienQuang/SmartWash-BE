@@ -36,7 +36,9 @@ namespace AutoWashPro.BLL.Services
                     VehicleTypeId = v.VehicleTypeId,
                     VehicleType = v.VehicleType.Name,
                     RegistrationPhotoUrl = v.RegistrationPhotoUrl,
-                    CarModel = v.CarModelId.HasValue ? v.CarModelEntity.Name : v.CarModel
+                    CarModel = v.CarModelId.HasValue && v.CarModelEntity != null ? v.CarModelEntity.Name : v.CarModel,
+                    ModelVersion = v.ModelVersion,
+                    ManufactureYear = v.ManufactureYear
                 }).ToListAsync();
         }
 
@@ -116,6 +118,8 @@ namespace AutoWashPro.BLL.Services
                 existingVehicle.UserNote = request.UserNote;
                 existingVehicle.CarModelId = finalCarModelId;
                 existingVehicle.CarModel = finalCarModel;
+                existingVehicle.ModelVersion = request.ModelVersion?.Trim();
+                existingVehicle.ManufactureYear = request.ManufactureYear;
             }
             else
             {
@@ -127,7 +131,9 @@ namespace AutoWashPro.BLL.Services
                     RegistrationPhotoUrl = finalPhotoUrl,
                     UserNote = request.UserNote,
                     CarModelId = finalCarModelId,
-                    CarModel = finalCarModel
+                    CarModel = finalCarModel,
+                    ModelVersion = request.ModelVersion?.Trim(),
+                    ManufactureYear = request.ManufactureYear
                 };
 
                 _context.Vehicles.Add(vehicle);
@@ -154,7 +160,9 @@ namespace AutoWashPro.BLL.Services
                     OwnerPhone = v.User != null ? v.User.PhoneNumber : null,
                     RegistrationPhotoUrl = v.RegistrationPhotoUrl,
                     UserNote = v.UserNote,
-                    CarModel = v.CarModel
+                    CarModel = v.CarModel,
+                    ModelVersion = v.ModelVersion,
+                    ManufactureYear = v.ManufactureYear
                 }).ToListAsync();
         }
 
@@ -350,6 +358,8 @@ namespace AutoWashPro.BLL.Services
 
             vehicle.CarModelId = finalCarModelId;
             vehicle.CarModel = finalCarModel;
+            vehicle.ModelVersion = request.ModelVersion?.Trim();
+            vehicle.ManufactureYear = request.ManufactureYear;
 
             await _context.SaveChangesAsync();
 
@@ -375,6 +385,7 @@ namespace AutoWashPro.BLL.Services
 
             var vehicle = await _context.Vehicles
                 .Include(v => v.VehicleType)
+                .Include(v => v.CarModelEntity)
                 .Include(v => v.User)
                     .ThenInclude(u => u.CustomerProfile)
                         .ThenInclude(cp => cp.Tier)
@@ -406,7 +417,9 @@ namespace AutoWashPro.BLL.Services
                 HasActiveBooking = activeBooking != null,
                 ActiveBookingId = activeBooking?.BookingId,
                 ScheduledTime = activeBooking?.ScheduledTime,
-                CarModel = vehicle.CarModel
+                CarModel = vehicle.CarModelId.HasValue && vehicle.CarModelEntity != null ? vehicle.CarModelEntity.Name : vehicle.CarModel,
+                ModelVersion = vehicle.ModelVersion,
+                ManufactureYear = vehicle.ManufactureYear
             };
         }
     }
