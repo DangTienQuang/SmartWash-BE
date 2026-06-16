@@ -12,5 +12,6 @@ namespace BLL.DTOs.Business
         public int FleetVehicleId { get; set; }
         public List<int> ServiceIds { get; set; } = new();
         public DateTime TargetDate { get; set; }
+        public int? VehicleCount { get; set; }
     }
 }

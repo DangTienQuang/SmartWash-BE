@@ -139,7 +139,7 @@ namespace API.Controllers
         {
             int userId = ClaimHelper.GetUserId(User);
 
-            var result = await _businessBookingService.CreateBookingAsync(userId, dto);
+            var result = await _businessBookingService.CreateBusinessBookingAsync(userId, dto);
 
             return Ok(new
             {
@@ -156,6 +156,36 @@ namespace API.Controllers
             int userId = ClaimHelper.GetUserId(User);
 
             var result = await _businessBookingService.GetActiveFleetVehiclesAsync(userId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
+        [HttpGet("vehicles/status/all")]
+        public async Task<IActionResult> GetActiveVehiclesOnFloor()
+        {
+            int userId = ClaimHelper.GetUserId(User);
+            var result = await _businessBookingService.GetActiveVehiclesOnFloorAsync(userId);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Success",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
+        [HttpGet("vehicles/status")]
+        public async Task<IActionResult> GetVehiclesByStatus([FromQuery] string? status = null)
+        {
+            int userId = ClaimHelper.GetUserId(User);
+            var result = await _businessBookingService.GetVehiclesByStatusAsync(userId, status);
 
             return Ok(new
             {
