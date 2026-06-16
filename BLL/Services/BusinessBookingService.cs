@@ -133,7 +133,234 @@ namespace BLL.Services
             return response;
         }
 
-        public async Task<MultiVehicleBookingResponseDTO> CreateBookingAsync(int businessUserId, CreateBusinessBookingDTO dto)
+        //public async Task<MultiVehicleBookingResponseDTO> CreateBusinessBookingAsync(int businessUserId, CreateBusinessBookingDTO dto)
+        //{
+        //    // ── Validate business ─────────────────────────────────────────────
+        //    var business = await _context.BusinessProfiles
+        //        .FirstOrDefaultAsync(x =>
+        //            x.UserId == businessUserId &&
+        //            x.ApprovalStatus == "Approved");
+
+        //    if (business == null)
+        //        throw new NotFoundException("Không tìm thấy hồ sơ doanh nghiệp.");
+
+        //    // ── Validate all fleet vehicles belong to this business ────────────
+        //    var fleetVehicles = await _context.FleetVehicles
+        //        .Include(x => x.VehicleType)
+        //        .Where(x =>
+        //            dto.FleetVehicleIds.Contains(x.FleetVehicleId) &&
+        //            x.BusinessProfileId == business.BusinessProfileId)
+        //        .ToListAsync();
+
+        //    if (fleetVehicles.Count != dto.FleetVehicleIds.Count)
+        //        throw new NotFoundException("Một hoặc nhiều phương tiện không thuộc về doanh nghiệp này.");
+
+        //    var inactiveVehicle = fleetVehicles.FirstOrDefault(x => x.Status != "Active");
+        //    if (inactiveVehicle != null)
+        //        throw new BadRequestException(
+        //            $"Phương tiện {inactiveVehicle.LicensePlate} chưa được kích hoạt.");
+
+        //    // ── Validate branch + slot ────────────────────────────────────────
+        //    var branch = await _context.Branches
+        //        .FirstOrDefaultAsync(x => x.BranchId == dto.BranchId);
+
+        //    if (branch == null)
+        //        throw new NotFoundException("Không tìm thấy chi nhánh.");
+
+        //    var slot = await _context.TimeSlots
+        //        .FirstOrDefaultAsync(x =>
+        //            x.SlotId == dto.SlotId &&
+        //            x.BranchId == dto.BranchId);
+
+        //    if (slot == null)
+        //        throw new NotFoundException("Không tìm thấy khung giờ.");
+
+        //    DateTime scheduledTime = dto.ScheduledTime.Date.Add(slot.StartTime);
+        //    TimeSpan slotDuration = slot.EndTime - slot.StartTime;
+
+        //    // ── Validate services + compute total price ───────────────────────
+        //    var services = await _context.Services
+        //        .Where(x => dto.ServiceIds.Contains(x.ServiceId))
+        //        .ToListAsync();
+
+        //    if (services.Count != dto.ServiceIds.Count)
+        //        throw new BadRequestException("Một hoặc nhiều dịch vụ không tồn tại.");
+
+        //    // Pre-load all service prices for all vehicle types in this booking
+        //    var allVehicleTypeIds = fleetVehicles
+        //        .Select(x => x.VehicleTypeId)
+        //        .Distinct()
+        //        .ToList();
+
+        //    var allServicePrices = await _context.ServicePrices
+        //        .Where(x =>
+        //            x.BranchId == dto.BranchId &&
+        //            allVehicleTypeIds.Contains(x.VehicleTypeId) &&
+        //            dto.ServiceIds.Contains(x.ServiceId))
+        //        .ToListAsync();
+
+        //    // ── Run EAL simulation ────────────────────────────────────────────
+        //    var scheduleRequests = fleetVehicles
+        //        .Select(v => new VehicleScheduleRequest
+        //        {
+        //            FleetVehicleId = v.FleetVehicleId,
+        //            VehicleType = v.VehicleType,
+        //            ServicePrices = allServicePrices
+        //                .Where(sp => sp.VehicleTypeId == v.VehicleTypeId)
+        //                .ToList()
+        //        })
+        //        .ToList();
+
+        //    var scheduleResult = await _laneSchedulerService.ScheduleFleetAsync(
+        //        dto.BranchId, scheduledTime, slotDuration, scheduleRequests);
+
+        //    if (!scheduleResult.Success)
+        //        throw new BadRequestException(scheduleResult.ErrorMessage!);
+
+        //    // ── Validate lane names for response ──────────────────────────────
+        //    var laneIds = scheduleResult.Assignments.Select(a => a.LaneId).Distinct().ToList();
+        //    var laneNames = await _context.Lanes
+        //        .Where(x => laneIds.Contains(x.LaneId))
+        //        .ToDictionaryAsync(x => x.LaneId, x => x.Name);
+
+        //    // ── Persist one Booking + BookingDetails per vehicle ──────────────
+        //    var vehicleSummaries = new List<VehicleBookingSummaryDTO>();
+        //    decimal totalAmount = 0;
+
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
+        //    try
+        //    {
+        //        foreach (var vehicle in fleetVehicles)
+        //        {
+        //            var assignment = scheduleResult.Assignments
+        //                .First(a => a.FleetVehicleId == vehicle.FleetVehicleId);
+
+        //            var vehicleServicePrices = allServicePrices
+        //                .Where(sp => sp.VehicleTypeId == vehicle.VehicleTypeId)
+        //                .ToList();
+
+        //            // Validate every service has a price for this vehicle type
+        //            foreach (var service in services)
+        //            {
+        //                bool hasPrice = vehicleServicePrices
+        //                    .Any(sp => sp.ServiceId == service.ServiceId);
+
+        //                if (!hasPrice)
+        //                    throw new BadRequestException(
+        //                        $"Chưa cấu hình giá cho dịch vụ '{service.ServiceName}' " +
+        //                        $"với loại xe '{vehicle.VehicleType.Name}'.");
+        //            }
+
+        //            decimal vehicleTotal = vehicleServicePrices
+        //                .Where(sp => dto.ServiceIds.Contains(sp.ServiceId))
+        //                .Sum(sp => sp.Price);
+
+        //            // Update slot capacity weight
+        //            var dailyCapacity = await _context.DailySlotCapacities
+        //                .FirstOrDefaultAsync(x =>
+        //                    x.BranchId == dto.BranchId &&
+        //                    x.SlotId == dto.SlotId &&
+        //                    x.Date == dto.ScheduledTime.Date);
+
+        //            if (dailyCapacity == null)
+        //            {
+        //                dailyCapacity = new DailySlotCapacity
+        //                {
+        //                    BranchId = dto.BranchId,
+        //                    SlotId = dto.SlotId,
+        //                    Date = dto.ScheduledTime.Date,
+        //                    BookedWeight = 0
+        //                };
+        //                _context.DailySlotCapacities.Add(dailyCapacity);
+        //            }
+
+        //            if (dailyCapacity.BookedWeight + vehicle.VehicleType.BaseWeight > slot.MaxCapacity)
+        //                throw new BadRequestException(
+        //                    $"Khung giờ đã hết sức chứa cho phương tiện {vehicle.LicensePlate}.");
+
+        //            dailyCapacity.BookedWeight += vehicle.VehicleType.BaseWeight;
+
+        //            // Create booking
+        //            var booking = new Booking
+        //            {
+        //                BusinessProfileId = business.BusinessProfileId,
+        //                FleetVehicleId = vehicle.FleetVehicleId,
+        //                BookingType = "Business",
+        //                BranchId = dto.BranchId,
+        //                ScheduledTime = scheduledTime,
+        //                LicensePlate = vehicle.LicensePlate,
+        //                Status = "Pending",
+        //                OriginalPrice = vehicleTotal,
+        //                FinalAmount = vehicleTotal,
+        //                CapacityWeight = vehicle.VehicleType.BaseWeight,
+        //                FallbackQrCode = Guid.NewGuid().ToString("N")[..8].ToUpper(),
+        //                ProcessingLaneId = assignment.LaneId  // lane reserved at booking time
+        //            };
+
+        //            _context.Bookings.Add(booking);
+
+        //            foreach (var service in services)
+        //            {
+        //                var sp = vehicleServicePrices.First(x => x.ServiceId == service.ServiceId);
+        //                _context.BookingDetails.Add(new BookingDetail
+        //                {
+        //                    Booking = booking,
+        //                    ServiceId = service.ServiceId,
+        //                    Price = sp.Price
+        //                });
+        //            }
+
+        //            totalAmount += vehicleTotal;
+
+        //            vehicleSummaries.Add(new VehicleBookingSummaryDTO
+        //            {
+        //                // BookingId filled after SaveChanges below
+        //                LicensePlate = vehicle.LicensePlate,
+        //                LaneId = assignment.LaneId,
+        //                LaneName = laneNames.TryGetValue(assignment.LaneId, out var ln) ? ln : "",
+        //                EstimatedStart = assignment.EstimatedStart,
+        //                EstimatedEnd = assignment.EstimatedEnd,
+        //                Amount = vehicleTotal
+        //            });
+        //        }
+
+        //        await _context.SaveChangesAsync();
+        //        await transaction.CommitAsync();
+        //    }
+        //    catch
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw;
+        //    }
+
+        //    // Back-fill BookingIds now that EF has assigned them
+        //    var savedBookings = await _context.Bookings
+        //        .Where(x =>
+        //            x.BusinessProfileId == business.BusinessProfileId &&
+        //            x.ScheduledTime == scheduledTime &&
+        //            x.Status == "Pending")
+        //        .OrderBy(x => x.BookingId)
+        //        .Select(x => new { x.BookingId, x.LicensePlate })
+        //        .ToListAsync();
+
+        //    foreach (var summary in vehicleSummaries)
+        //    {
+        //        var match = savedBookings.FirstOrDefault(b => b.LicensePlate == summary.LicensePlate);
+        //        if (match != null)
+        //            summary.BookingId = match.BookingId;
+        //    }
+
+        //    return new MultiVehicleBookingResponseDTO
+        //    {
+        //        BookingGroupId = vehicleSummaries.First().BookingId,
+        //        TotalVehicles = vehicleSummaries.Count,
+        //        TotalAmount = totalAmount,
+        //        Status = "Pending",
+        //        Vehicles = vehicleSummaries
+        //    };
+        //}
+
+        public async Task<MultiVehicleBookingResponseDTO> CreateBusinessBookingAsync(int businessUserId, CreateBusinessBookingDTO dto)
         {
             // ── Validate business ─────────────────────────────────────────────
             var business = await _context.BusinessProfiles
@@ -144,15 +371,17 @@ namespace BLL.Services
             if (business == null)
                 throw new NotFoundException("Không tìm thấy hồ sơ doanh nghiệp.");
 
-            // ── Validate all fleet vehicles belong to this business ────────────
+            // ── Validate all fleet vehicles belong to this business ───────────
+            var vehicleIds = dto.Vehicles.Select(v => v.FleetVehicleId).ToList();
+
             var fleetVehicles = await _context.FleetVehicles
                 .Include(x => x.VehicleType)
                 .Where(x =>
-                    dto.FleetVehicleIds.Contains(x.FleetVehicleId) &&
+                    vehicleIds.Contains(x.FleetVehicleId) &&
                     x.BusinessProfileId == business.BusinessProfileId)
                 .ToListAsync();
 
-            if (fleetVehicles.Count != dto.FleetVehicleIds.Count)
+            if (fleetVehicles.Count != dto.Vehicles.Count)
                 throw new NotFoundException("Một hoặc nhiều phương tiện không thuộc về doanh nghiệp này.");
 
             var inactiveVehicle = fleetVehicles.FirstOrDefault(x => x.Status != "Active");
@@ -178,109 +407,95 @@ namespace BLL.Services
             DateTime scheduledTime = dto.ScheduledTime.Date.Add(slot.StartTime);
             TimeSpan slotDuration = slot.EndTime - slot.StartTime;
 
-            // ── Validate services + compute total price ───────────────────────
-            var services = await _context.Services
-                .Where(x => dto.ServiceIds.Contains(x.ServiceId))
-                .ToListAsync();
+            // ── Build per-vehicle schedule requests ───────────────────────────
+            var scheduleRequests = new List<VehicleScheduleRequest>();
 
-            if (services.Count != dto.ServiceIds.Count)
-                throw new BadRequestException("Một hoặc nhiều dịch vụ không tồn tại.");
+            foreach (var item in dto.Vehicles)
+            {
+                var vehicle = fleetVehicles.First(v => v.FleetVehicleId == item.FleetVehicleId);
 
-            // Pre-load all service prices for all vehicle types in this booking
-            var allVehicleTypeIds = fleetVehicles
-                .Select(x => x.VehicleTypeId)
-                .Distinct()
-                .ToList();
+                if (!item.ServiceIds.Any())
+                    throw new BadRequestException(
+                        $"Phương tiện {vehicle.LicensePlate} phải có ít nhất một dịch vụ.");
 
-            var allServicePrices = await _context.ServicePrices
-                .Where(x =>
-                    x.BranchId == dto.BranchId &&
-                    allVehicleTypeIds.Contains(x.VehicleTypeId) &&
-                    dto.ServiceIds.Contains(x.ServiceId))
-                .ToListAsync();
+                var vehicleServicePrices = await _context.ServicePrices
+                    .Where(sp =>
+                        sp.BranchId == dto.BranchId &&
+                        sp.VehicleTypeId == vehicle.VehicleTypeId &&
+                        item.ServiceIds.Contains(sp.ServiceId))
+                    .ToListAsync();
+
+                if (vehicleServicePrices.Count != item.ServiceIds.Count)
+                    throw new BadRequestException(
+                        $"Một hoặc nhiều dịch vụ chưa được cấu hình giá cho phương tiện " +
+                        $"{vehicle.LicensePlate} ({vehicle.VehicleType.Name}).");
+
+                scheduleRequests.Add(new VehicleScheduleRequest
+                {
+                    FleetVehicleId = vehicle.FleetVehicleId,
+                    VehicleType = vehicle.VehicleType,
+                    ServicePrices = vehicleServicePrices
+                });
+            }
 
             // ── Run EAL simulation ────────────────────────────────────────────
-            var scheduleRequests = fleetVehicles
-                .Select(v => new VehicleScheduleRequest
-                {
-                    FleetVehicleId = v.FleetVehicleId,
-                    VehicleType = v.VehicleType,
-                    ServicePrices = allServicePrices
-                        .Where(sp => sp.VehicleTypeId == v.VehicleTypeId)
-                        .ToList()
-                })
-                .ToList();
-
             var scheduleResult = await _laneSchedulerService.ScheduleFleetAsync(
                 dto.BranchId, scheduledTime, slotDuration, scheduleRequests);
 
             if (!scheduleResult.Success)
                 throw new BadRequestException(scheduleResult.ErrorMessage!);
 
-            // ── Validate lane names for response ──────────────────────────────
+            // ── Load lane names for response ──────────────────────────────────
             var laneIds = scheduleResult.Assignments.Select(a => a.LaneId).Distinct().ToList();
             var laneNames = await _context.Lanes
                 .Where(x => laneIds.Contains(x.LaneId))
                 .ToDictionaryAsync(x => x.LaneId, x => x.Name);
 
-            // ── Persist one Booking + BookingDetails per vehicle ──────────────
+            // ── Load or create DailySlotCapacity ONCE before the loop ─────────
+            // Loading inside the loop causes duplicate inserts because EF's
+            // change tracker doesn't see the unsaved first insert on subsequent
+            // iterations, resulting in a unique constraint violation on
+            // IX_DailySlotCapacities_SlotId_Date_BranchId.
+            var dailyCapacity = await _context.DailySlotCapacities
+                .FirstOrDefaultAsync(x =>
+                    x.BranchId == dto.BranchId &&
+                    x.SlotId == dto.SlotId &&
+                    x.Date == dto.ScheduledTime.Date);
+
+            if (dailyCapacity == null)
+            {
+                dailyCapacity = new DailySlotCapacity
+                {
+                    BranchId = dto.BranchId,
+                    SlotId = dto.SlotId,
+                    Date = dto.ScheduledTime.Date,
+                    BookedWeight = 0
+                };
+                _context.DailySlotCapacities.Add(dailyCapacity);
+            }
+
+            // ── Persist: one Booking + BookingDetails per vehicle ─────────────
             var vehicleSummaries = new List<VehicleBookingSummaryDTO>();
             decimal totalAmount = 0;
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                foreach (var vehicle in fleetVehicles)
+                foreach (var item in dto.Vehicles)
                 {
-                    var assignment = scheduleResult.Assignments
-                        .First(a => a.FleetVehicleId == vehicle.FleetVehicleId);
+                    var vehicle = fleetVehicles.First(v => v.FleetVehicleId == item.FleetVehicleId);
+                    var request = scheduleRequests.First(r => r.FleetVehicleId == item.FleetVehicleId);
+                    var assignment = scheduleResult.Assignments.First(a => a.FleetVehicleId == item.FleetVehicleId);
 
-                    var vehicleServicePrices = allServicePrices
-                        .Where(sp => sp.VehicleTypeId == vehicle.VehicleTypeId)
-                        .ToList();
+                    decimal vehicleTotal = request.ServicePrices.Sum(sp => sp.Price);
 
-                    // Validate every service has a price for this vehicle type
-                    foreach (var service in services)
-                    {
-                        bool hasPrice = vehicleServicePrices
-                            .Any(sp => sp.ServiceId == service.ServiceId);
-
-                        if (!hasPrice)
-                            throw new BadRequestException(
-                                $"Chưa cấu hình giá cho dịch vụ '{service.ServiceName}' " +
-                                $"với loại xe '{vehicle.VehicleType.Name}'.");
-                    }
-
-                    decimal vehicleTotal = vehicleServicePrices
-                        .Where(sp => dto.ServiceIds.Contains(sp.ServiceId))
-                        .Sum(sp => sp.Price);
-
-                    // Update slot capacity weight
-                    var dailyCapacity = await _context.DailySlotCapacities
-                        .FirstOrDefaultAsync(x =>
-                            x.BranchId == dto.BranchId &&
-                            x.SlotId == dto.SlotId &&
-                            x.Date == dto.ScheduledTime.Date);
-
-                    if (dailyCapacity == null)
-                    {
-                        dailyCapacity = new DailySlotCapacity
-                        {
-                            BranchId = dto.BranchId,
-                            SlotId = dto.SlotId,
-                            Date = dto.ScheduledTime.Date,
-                            BookedWeight = 0
-                        };
-                        _context.DailySlotCapacities.Add(dailyCapacity);
-                    }
-
+                    // Capacity check — accumulated across all vehicles in this request
                     if (dailyCapacity.BookedWeight + vehicle.VehicleType.BaseWeight > slot.MaxCapacity)
                         throw new BadRequestException(
                             $"Khung giờ đã hết sức chứa cho phương tiện {vehicle.LicensePlate}.");
 
                     dailyCapacity.BookedWeight += vehicle.VehicleType.BaseWeight;
 
-                    // Create booking
                     var booking = new Booking
                     {
                         BusinessProfileId = business.BusinessProfileId,
@@ -294,18 +509,17 @@ namespace BLL.Services
                         FinalAmount = vehicleTotal,
                         CapacityWeight = vehicle.VehicleType.BaseWeight,
                         FallbackQrCode = Guid.NewGuid().ToString("N")[..8].ToUpper(),
-                        ProcessingLaneId = assignment.LaneId  // lane reserved at booking time
+                        ProcessingLaneId = assignment.LaneId
                     };
 
                     _context.Bookings.Add(booking);
 
-                    foreach (var service in services)
+                    foreach (var sp in request.ServicePrices)
                     {
-                        var sp = vehicleServicePrices.First(x => x.ServiceId == service.ServiceId);
                         _context.BookingDetails.Add(new BookingDetail
                         {
                             Booking = booking,
-                            ServiceId = service.ServiceId,
+                            ServiceId = sp.ServiceId,
                             Price = sp.Price
                         });
                     }
@@ -314,7 +528,6 @@ namespace BLL.Services
 
                     vehicleSummaries.Add(new VehicleBookingSummaryDTO
                     {
-                        // BookingId filled after SaveChanges below
                         LicensePlate = vehicle.LicensePlate,
                         LaneId = assignment.LaneId,
                         LaneName = laneNames.TryGetValue(assignment.LaneId, out var ln) ? ln : "",
@@ -333,7 +546,7 @@ namespace BLL.Services
                 throw;
             }
 
-            // Back-fill BookingIds now that EF has assigned them
+            // ── Back-fill BookingIds after EF assigns them ────────────────────
             var savedBookings = await _context.Bookings
                 .Where(x =>
                     x.BusinessProfileId == business.BusinessProfileId &&
@@ -359,145 +572,6 @@ namespace BLL.Services
                 Vehicles = vehicleSummaries
             };
         }
-
-        //public async Task<BusinessBookingResponseDTO> CreateBookingAsync(int businessUserId, CreateBusinessBookingDTO dto)
-        //{
-        //    var business = await _context.BusinessProfiles
-        //        .FirstOrDefaultAsync(x =>
-        //            x.UserId == businessUserId &&
-        //            x.ApprovalStatus == "Approved");
-
-        //    if (business == null)
-        //    {
-        //        throw new NotFoundException("Không tìm thấy hồ sơ doanh nghiệp.");
-        //    }
-
-        //    var fleetVehicle = await _context.FleetVehicles.Include(x => x.VehicleType)
-        //        .FirstOrDefaultAsync(x =>
-        //            x.FleetVehicleId == dto.FleetVehicleId &&
-        //            x.BusinessProfileId == business.BusinessProfileId);
-
-        //    if (fleetVehicle == null)
-        //    {
-        //        throw new NotFoundException("Không tìm thấy phương tiện trong đội xe.");
-        //    }
-
-        //    if (fleetVehicle.Status != "Active")
-        //    {
-        //        throw new BadRequestException( "Phương tiện chưa được kích hoạt.");
-        //    }
-
-        //    var branch = await _context.Branches
-        //        .FirstOrDefaultAsync(x => x.BranchId == dto.BranchId);
-
-        //    if (branch == null)
-        //    {
-        //        throw new NotFoundException("Không tìm thấy chi nhánh.");
-        //    }
-
-        //    var slot = await _context.TimeSlots
-        //        .FirstOrDefaultAsync(x => x.SlotId == dto.SlotId && x.BranchId == dto.BranchId);
-
-        //    if (slot == null)
-        //    {
-        //        throw new NotFoundException("Không tìm thấy khung giờ.");
-        //    }
-
-        //    var scheduledTime = dto.ScheduledTime.Date.Add(slot.StartTime);
-
-        //    var dailyCapacity = await _context.DailySlotCapacities
-        //        .FirstOrDefaultAsync(x => x.BranchId == dto.BranchId && x.SlotId == dto.SlotId && x.Date == dto.ScheduledTime.Date);
-
-        //    if (dailyCapacity == null)
-        //    {
-        //        dailyCapacity = new DailySlotCapacity
-        //        {
-        //            BranchId = dto.BranchId,
-        //            SlotId = dto.SlotId,
-        //            Date = dto.ScheduledTime.Date,
-        //            BookedWeight = 0
-        //        };
-        //        _context.DailySlotCapacities.Add(dailyCapacity);
-        //    }
-
-        //    if (dailyCapacity.BookedWeight + fleetVehicle.VehicleType.BaseWeight > slot.MaxCapacity)
-        //    {
-        //        throw new BadRequestException("Khung giờ này đã hết chỗ.");
-        //    }
-
-        //    dailyCapacity.BookedWeight += fleetVehicle.VehicleType.BaseWeight;
-
-        //    var services = await _context.Services
-        //        .Where(x => dto.ServiceIds.Contains(x.ServiceId))
-        //        .ToListAsync();
-
-        //    if (services.Count != dto.ServiceIds.Count)
-        //    {
-        //        throw new BadRequestException("Một hoặc nhiều dịch vụ không tồn tại.");
-        //    }
-
-        //    decimal totalPrice = 0;
-
-        //    foreach (var service in services)
-        //    {
-        //        var servicePrice = await _context.ServicePrices
-        //            .FirstOrDefaultAsync(x =>
-        //                x.ServiceId == service.ServiceId &&
-        //                x.VehicleTypeId == fleetVehicle.VehicleTypeId &&
-        //                x.BranchId == dto.BranchId);
-
-        //        if (servicePrice == null)
-        //        {
-        //            throw new BadRequestException($"Chưa cấu hình giá cho dịch vụ {service.ServiceName}.");
-        //        }
-
-        //        totalPrice += servicePrice.Price;
-        //    }
-
-        //    var booking = new Booking
-        //    {
-        //        BusinessProfileId = business.BusinessProfileId,
-        //        FleetVehicleId = fleetVehicle.FleetVehicleId,
-        //        BookingType = "Business",
-        //        BranchId = dto.BranchId,
-        //        ScheduledTime = scheduledTime,
-        //        LicensePlate = fleetVehicle.LicensePlate,
-        //        Status = "Pending",
-        //        OriginalPrice = totalPrice,
-        //        FinalAmount = totalPrice,
-        //        CapacityWeight = fleetVehicle.VehicleType.BaseWeight,
-        //        FallbackQrCode = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()
-        //    };
-
-        //    _context.Bookings.Add(booking);
-
-        //    foreach (var service in services)
-        //    {
-        //        var servicePrice = await _context.ServicePrices
-        //            .FirstAsync(x =>
-        //                x.ServiceId == service.ServiceId &&
-        //                x.VehicleTypeId == fleetVehicle.VehicleTypeId &&
-        //                x.BranchId == dto.BranchId);
-
-        //        _context.BookingDetails.Add(new BookingDetail
-        //        {
-        //            Booking = booking,
-        //            ServiceId = service.ServiceId,
-        //            Price = servicePrice.Price
-        //        });
-        //    }
-
-        //    await _context.SaveChangesAsync();
-
-        //    return new BusinessBookingResponseDTO
-        //    {
-        //        BookingId = booking.BookingId,
-        //        LicensePlate = booking.LicensePlate,
-        //        OriginalPrice = booking.OriginalPrice,
-        //        FinalAmount = booking.FinalAmount,
-        //        Status = booking.Status
-        //    };
-        //}
 
         public async Task<List<FleetVehicleDTO>> GetActiveFleetVehiclesAsync(int businessUserId)
         {
@@ -1120,111 +1194,170 @@ namespace BLL.Services
             await _context.SaveChangesAsync();
         }
 
-        //public async Task<List<DTOs.Business.TimeSlotResponseDTO>> GetAvailableSlotsForBusinessAsync(int businessUserId, CheckBusinessSlotsRequestDTO request)
-        //{
-        //    // 1. Verify business + vehicle ownership
-        //    var business = await _context.BusinessProfiles
-        //        .FirstOrDefaultAsync(x => x.UserId == businessUserId && x.ApprovalStatus == "Approved");
+        public async Task<List<BusinessVehicleStatusDTO>> GetActiveVehiclesOnFloorAsync(int businessUserId)
+        {
+            var business = await _context.BusinessProfiles
+                .FirstOrDefaultAsync(x => x.UserId == businessUserId);
 
-        //    if (business == null)
-        //        throw new NotFoundException("Không tìm thấy hồ sơ doanh nghiệp hoặc chưa được phê duyệt.");
+            if (business == null)
+                throw new NotFoundException("Không tìm thấy hồ sơ doanh nghiệp.");
 
-        //    var fleetVehicle = await _context.FleetVehicles
-        //        .Include(x => x.VehicleType)
-        //        .FirstOrDefaultAsync(x =>
-        //            x.FleetVehicleId == request.FleetVehicleId &&
-        //            x.BusinessProfileId == business.BusinessProfileId &&
-        //            x.Status == "Active");
+            var result = new List<BusinessVehicleStatusDTO>();
 
-        //    if (fleetVehicle == null)
-        //        throw new NotFoundException("Không tìm thấy phương tiện hoặc phương tiện chưa được kích hoạt.");
+            // ── 1. Pending / Cancelled Bookings ───────────────────────────
+            var bookings = await _context.Bookings
+                .Include(x => x.FleetVehicle)
+                    .ThenInclude(x => x.VehicleType)
+                .Include(x => x.Branch)
+                .Where(x =>
+                    x.BusinessProfileId == business.BusinessProfileId &&
+                    x.BookingType == "Business" &&
+                    (x.Status == "Pending" || x.Status == "Cancelled"))
+                .OrderBy(x => x.ScheduledTime)
+                .ToListAsync();
 
-        //    // 2. Timezone (same cross-platform pattern as customer slot checker)
-        //    TimeZoneInfo vnTimeZone;
-        //    try { vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"); }
-        //    catch (TimeZoneNotFoundException) { vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh"); }
+            result.AddRange(bookings.Select(x => new BusinessVehicleStatusDTO
+            {
+                FleetWashLogId = null,
+                BookingId = x.BookingId,
+                LicensePlate = x.LicensePlate,
+                DriverName = x.FleetVehicle!.DriverName,
+                VehicleType = x.FleetVehicle.VehicleType.Name,
+                Status = x.Status,
+                WashType = "Booking",
+                LaneName = null,
+                BranchName = x.Branch.Name,
+                ScheduledTime = x.ScheduledTime,
+                CheckInTime = null,
+                CompletedTime = null,
+                WashCost = x.FinalAmount
+            }));
 
-        //    DateTime todayInVN = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone).Date;
-        //    TimeSpan currentTimeInVN = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone).TimeOfDay;
+            // ── 2. Active Wash Logs ───────────────────────────────────────
+            var washLogs = await _context.FleetWashLogs
+                .Include(x => x.FleetVehicle)
+                    .ThenInclude(x => x.VehicleType)
+                .Include(x => x.Lane)
+                .Where(x =>
+                    x.FleetVehicle.BusinessProfileId == business.BusinessProfileId &&
+                    (x.Status == "CheckedIn" ||
+                     x.Status == "Assigned" ||
+                     x.Status == "Processing"))
+                .OrderBy(x => x.CheckInTime)
+                .ToListAsync();
 
-        //    // No tier booking window — business can book as far ahead as needed
-        //    if (request.TargetDate.Date < todayInVN)
-        //        throw new BadRequestException("Không thể đặt lịch cho ngày trong quá khứ.");
+            result.AddRange(washLogs.Select(x => new BusinessVehicleStatusDTO
+            {
+                FleetWashLogId = x.FleetWashLogId,
+                BookingId = x.BookingId,
+                LicensePlate = x.FleetVehicle.LicensePlate,
+                DriverName = x.FleetVehicle.DriverName,
+                VehicleType = x.FleetVehicle.VehicleType.Name,
+                Status = x.Status!,
+                WashType = x.BookingId != null ? "Booking" : "WalkIn",
+                LaneName = x.Lane?.Name,
+                BranchName = null,
+                ScheduledTime = null,
+                CheckInTime = x.CheckInTime,
+                CompletedTime = x.CompletedTime,
+                WashCost = x.WashCost
+            }));
 
-        //    // 3. Calculate capacity weight from services (same logic as customer version)
-        //    int totalRequestWeight = 0;
-        //    if (request.ServiceIds.Any())
-        //    {
-        //        int baseWeight = fleetVehicle.VehicleType?.BaseWeight ?? 0;
+            return result
+                .OrderBy(x => x.Status == "Pending" || x.Status == "Cancelled" ? 0 : 1)
+                .ThenBy(x => x.ScheduledTime ?? x.CheckInTime)
+                .ToList();
+        }
 
-        //        foreach (var serviceId in request.ServiceIds)
-        //        {
-        //            var servicePrice = await _context.ServicePrices
-        //                .FirstOrDefaultAsync(sp =>
-        //                    sp.ServiceId == serviceId &&
-        //                    sp.VehicleTypeId == fleetVehicle.VehicleTypeId &&
-        //                    sp.BranchId == request.BranchId);
+        public async Task<List<BusinessVehicleStatusDTO>> GetVehiclesByStatusAsync(int businessUserId, string? status)
+        {
+            var business = await _context.BusinessProfiles
+                .FirstOrDefaultAsync(x => x.UserId == businessUserId);
 
-        //            // Mirror the same fallback: servicePrice weight → baseWeight
-        //            var actualWeight = servicePrice?.CapacityWeight > 0
-        //                ? servicePrice.CapacityWeight
-        //                : baseWeight;
+            if (business == null)
+                throw new NotFoundException("Không tìm thấy hồ sơ doanh nghiệp.");
 
-        //            if (actualWeight > totalRequestWeight)
-        //                totalRequestWeight = actualWeight;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        // No services selected yet — use vehicle base weight as minimum estimate
-        //        totalRequestWeight = fleetVehicle.VehicleType?.BaseWeight ?? 0;
-        //    }
+            var result = new List<BusinessVehicleStatusDTO>();
 
-        //    // 4. Load slots and daily booked weights
-        //    var allSlots = await _context.TimeSlots
-        //        .Where(s => s.BranchId == request.BranchId)
-        //        .OrderBy(s => s.StartTime)
-        //        .ToListAsync();
+            // ── 1. Bookings not yet checked in (Pending, Cancelled) ───────────
+            bool includePending = string.IsNullOrWhiteSpace(status)
+                || status == "Pending"
+                || status == "Cancelled";
 
-        //    var dailyCapacities = await _context.DailySlotCapacities
-        //        .Where(dc => dc.BranchId == request.BranchId && dc.Date == request.TargetDate.Date)
-        //        .ToDictionaryAsync(dc => dc.SlotId, dc => dc.BookedWeight);
+            if (includePending)
+            {
+                var bookingQuery = _context.Bookings
+                    .Include(x => x.FleetVehicle)
+                        .ThenInclude(x => x.VehicleType)
+                    .Include(x => x.Branch)
+                    .Where(x =>
+                        x.BusinessProfileId == business.BusinessProfileId &&
+                        x.BookingType == "Business" &&
+                        (x.Status == "Pending" || x.Status == "Cancelled"));
 
-        //    // 5. Build response — no VIP check needed for business accounts
-        //    var response = new List<TimeSlotResponseDTO>();
+                if (!string.IsNullOrWhiteSpace(status))
+                    bookingQuery = bookingQuery.Where(x => x.Status == status);
 
-        //    foreach (var slot in allSlots)
-        //    {
-        //        var slotDto = new TimeSlotResponseDTO
-        //        {
-        //            SlotId = slot.SlotId,
-        //            TimeRange = $"{slot.StartTime:hh\\:mm} - {slot.EndTime:hh\\:mm}",
-        //            IsAvailable = true,
-        //            Reason = "Trống"
-        //        };
+                var bookings = await bookingQuery
+                    .OrderByDescending(x => x.ScheduledTime)
+                    .ToListAsync();
 
-        //        // Past time check
-        //        if (request.TargetDate.Date == todayInVN && slot.StartTime < currentTimeInVN)
-        //        {
-        //            slotDto.IsAvailable = false;
-        //            slotDto.Reason = "Đã qua giờ";
-        //        }
+                result.AddRange(bookings.Select(x => new BusinessVehicleStatusDTO
+                {
+                    FleetWashLogId = null,
+                    BookingId = x.BookingId,
+                    LicensePlate = x.LicensePlate,
+                    DriverName = x.FleetVehicle!.DriverName,
+                    VehicleType = x.FleetVehicle.VehicleType.Name,
+                    Status = x.Status,
+                    WashType = "Booking",
+                    LaneName = null,
+                    BranchName = x.Branch.Name,
+                    ScheduledTime = x.ScheduledTime,
+                    CheckInTime = null,
+                    CompletedTime = null,
+                    WashCost = x.FinalAmount
+                }));
+            }
 
-        //        // Capacity check
-        //        int bookedWeight = dailyCapacities.TryGetValue(slot.SlotId, out int weight) ? weight : 0;
+            // ── 2. WashLogs (CheckedIn, Assigned, Processing, Completed) ─────
+            bool includeWashLog = string.IsNullOrWhiteSpace(status)
+                || status is "CheckedIn" or "Assigned" or "Processing" or "Completed";
 
-        //        if (bookedWeight + totalRequestWeight > slot.MaxCapacity)
-        //        {
-        //            slotDto.IsAvailable = false;
-        //            slotDto.Reason = totalRequestWeight > 0
-        //                ? "Không đủ sức chứa cho phương tiện này"
-        //                : "Đã kín chỗ";
-        //        }
+            if (includeWashLog)
+            {
+                var logQuery = _context.FleetWashLogs
+                    .Include(x => x.FleetVehicle)
+                        .ThenInclude(x => x.VehicleType)
+                    .Include(x => x.Lane)
+                    .Where(x => x.FleetVehicle.BusinessProfileId == business.BusinessProfileId);
 
-        //        response.Add(slotDto);
-        //    }
+                if (!string.IsNullOrWhiteSpace(status))
+                    logQuery = logQuery.Where(x => x.Status == status);
 
-        //    return response;
-        //}
-    }
+                var logs = await logQuery
+                    .OrderByDescending(x => x.CheckInTime)
+                    .ToListAsync();
+
+                result.AddRange(logs.Select(x => new BusinessVehicleStatusDTO
+                {
+                    FleetWashLogId = x.FleetWashLogId,
+                    BookingId = x.BookingId,
+                    LicensePlate = x.FleetVehicle.LicensePlate,
+                    DriverName = x.FleetVehicle.DriverName,
+                    VehicleType = x.FleetVehicle.VehicleType.Name,
+                    Status = x.Status!,
+                    WashType = x.BookingId != null ? "Booking" : "WalkIn",
+                    LaneName = x.Lane != null ? x.Lane.Name : null,
+                    BranchName = null,
+                    ScheduledTime = null,
+                    CheckInTime = x.CheckInTime,
+                    CompletedTime = x.CompletedTime,
+                    WashCost = x.WashCost
+                }));
+            }
+
+            return result.OrderByDescending(x => x.CheckInTime ?? x.ScheduledTime).ToList();
+        }
+    }        
 }

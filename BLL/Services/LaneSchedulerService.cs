@@ -69,7 +69,7 @@ namespace BLL.Services
                         x.VehicleTypeId == (vehicleType != null ? vehicleType.Id : 0))
                     .ToListAsync();
 
-                int estimatedMinutes = WashTimeEstimator.EstimateMinutes(baseWeight, servicePrices);
+                int estimatedMinutes = WashTimeEstimator.EstimateMinutes(servicePrices);
 
                 // ProjectedFreeAt = when the wash started + how long it takes
                 // If already in Processing, use CheckInTime as the start baseline
@@ -113,9 +113,7 @@ namespace BLL.Services
 
             foreach (var vehicle in vehicles)
             {
-                int washMinutes = WashTimeEstimator.EstimateMinutes(
-                    vehicle.VehicleType.BaseWeight,
-                    vehicle.ServicePrices);
+                int washMinutes = WashTimeEstimator.EstimateMinutes(vehicle.ServicePrices);
 
                 // Re-sort every iteration — FreeAt mutates as we assign
                 laneQueue.Sort((a, b) => a.FreeAt.CompareTo(b.FreeAt));

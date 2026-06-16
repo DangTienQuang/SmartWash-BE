@@ -14,32 +14,14 @@ namespace BLL.Helpers
         /// <summary>
         /// Estimates wash time in minutes for one vehicle + its selected services.
         /// </summary>
-        public static int EstimateMinutes(int baseWeight, IEnumerable<ServicePrice> servicePrices)
+            public static int EstimateMinutes(IEnumerable<ServicePrice> servicePrices)
         {
-            int baseMinutes = baseWeight switch
-            {
-                <= 1 => 10,  // microcar
-                <= 2 => 14,  // sedan / hatchback
-                <= 3 => 18,  // SUV / MPV
-                _ => 24   // truck / large vehicle
-            };
-
-            // Take MAX service capacity weight as the dominant complexity signal.
-            // Mirrors the same take-max logic used in slot availability checks.
-            int maxServiceWeight = servicePrices
-                .Select(sp => sp.CapacityWeight)
-                .DefaultIfEmpty(0)
+            // Use EstimatedDurationMinutes directly from ServicePrice
+            // Take MAX across selected services — dominant service drives the time
+            return servicePrices
+                .Select(sp => sp.EstimatedDurationMinutes)
+                .DefaultIfEmpty(10)
                 .Max();
-
-            int serviceAddon = maxServiceWeight switch
-            {
-                <= 1 => 0,   // basic wash — no extra time
-                <= 2 => 5,   // standard service
-                <= 3 => 10,  // full service
-                _ => 15   // premium / detail
-            };
-
-            return baseMinutes + serviceAddon;
         }
 
         public static int GetInterVehicleBuffer() => InterVehicleBufferMinutes;
