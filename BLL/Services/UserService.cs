@@ -51,8 +51,8 @@ namespace AutoWashPro.BLL.Services
                     VehicleType = v.VehicleType?.Name,
                     RegistrationPhotoUrl = v.RegistrationPhotoUrl,
                     CarModel = v.CarModelId.HasValue && v.CarModelEntity != null ? v.CarModelEntity.Name : v.CarModel,
-                    ModelVersion = v.ModelVersion,
-                    ManufactureYear = v.ManufactureYear
+                    ModelVersion = v.CarModelEntity?.ModelVersion,
+                    ManufactureYear = v.CarModelEntity?.ManufactureYear
                 }).ToList(),
                 DateOfBirth = user.CustomerProfile?.DateOfBirth
             };

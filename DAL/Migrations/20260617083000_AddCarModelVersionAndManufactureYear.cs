@@ -5,20 +5,20 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DAL.Migrations
 {
     /// <inheritdoc />
-    public partial class AddVehicleVersionAndManufactureYear : Migration
+    public partial class AddCarModelVersionAndManufactureYear : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<int>(
                 name: "ManufactureYear",
-                table: "Vehicles",
+                table: "CarModels",
                 type: "int",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "ModelVersion",
-                table: "Vehicles",
+                table: "CarModels",
                 type: "varchar(100)",
                 maxLength: 100,
                 nullable: true)
@@ -30,11 +30,11 @@ namespace DAL.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "ManufactureYear",
-                table: "Vehicles");
+                table: "CarModels");
 
             migrationBuilder.DropColumn(
                 name: "ModelVersion",
-                table: "Vehicles");
+                table: "CarModels");
         }
     }
 }

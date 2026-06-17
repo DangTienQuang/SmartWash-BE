@@ -9,8 +9,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DAL.Migrations
 {
     [DbContext(typeof(AutoWashDbContext))]
-    [Migration("20260615062000_AddVehicleVersionAndManufactureYear")]
-    partial class AddVehicleVersionAndManufactureYear
+    [Migration("20260617083000_AddCarModelVersionAndManufactureYear")]
+    partial class AddCarModelVersionAndManufactureYear
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -22,13 +22,26 @@ namespace AutoWashPro.BLL.Services
             return await _context.CarModels
                 .Where(c => c.IsActive)
                 .OrderBy(c => c.Brand).ThenBy(c => c.Name)
-                .Select(c => new CarModelDTO { Id = c.Id, Brand = c.Brand, Name = c.Name })
+                .Select(c => new CarModelDTO
+                {
+                    Id = c.Id,
+                    Brand = c.Brand,
+                    Name = c.Name,
+                    ModelVersion = c.ModelVersion,
+                    ManufactureYear = c.ManufactureYear
+                })
                 .ToListAsync();
         }
 
         public async Task<bool> CreateCarModelAsync(CreateCarModelDTO request)
         {
-            var newModel = new CarModel { Brand = request.Brand, Name = request.Name };
+            var newModel = new CarModel
+            {
+                Brand = request.Brand,
+                Name = request.Name,
+                ModelVersion = request.ModelVersion?.Trim(),
+                ManufactureYear = request.ManufactureYear
+            };
             _context.CarModels.Add(newModel);
             var result = await _context.SaveChangesAsync();
             return result > 0;
@@ -41,6 +54,8 @@ namespace AutoWashPro.BLL.Services
 
             model.Brand = request.Brand;
             model.Name = request.Name;
+            model.ModelVersion = request.ModelVersion?.Trim();
+            model.ManufactureYear = request.ManufactureYear;
             model.IsActive = request.IsActive;
 
             await _context.SaveChangesAsync();

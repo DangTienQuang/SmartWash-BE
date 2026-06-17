@@ -46,11 +46,6 @@ namespace AutoWashPro.BLL.DTOs
         public int? CarModelId { get; set; }
         public string? CarModel { get; set; }
 
-        [StringLength(100, ErrorMessage = "Phiên bản xe tối đa 100 ký tự.")]
-        public string? ModelVersion { get; set; }
-
-        [Range(1900, 2100, ErrorMessage = "Năm sản xuất không hợp lệ.")]
-        public int? ManufactureYear { get; set; }
     }
 
     public class UpdateVehicleDTO
@@ -62,11 +57,6 @@ namespace AutoWashPro.BLL.DTOs
         public int? CarModelId { get; set; }
         public string? CarModel { get; set; }
 
-        [StringLength(100, ErrorMessage = "Phiên bản xe tối đa 100 ký tự.")]
-        public string? ModelVersion { get; set; }
-
-        [Range(1900, 2100, ErrorMessage = "Năm sản xuất không hợp lệ.")]
-        public int? ManufactureYear { get; set; }
     }
 
     public class UpdateUserProfileDTO

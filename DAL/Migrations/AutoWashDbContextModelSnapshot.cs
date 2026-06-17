@@ -193,6 +193,13 @@ namespace DAL.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<int?>("ManufactureYear")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ModelVersion")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -886,13 +893,6 @@ namespace DAL.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
-
-                    b.Property<int?>("ManufactureYear")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ModelVersion")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("RegistrationPhotoUrl")
                         .HasColumnType("longtext");

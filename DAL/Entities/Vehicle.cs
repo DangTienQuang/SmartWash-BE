@@ -34,11 +34,6 @@ namespace AutoWashPro.DAL.Entities
 
         public string? CarModel { get; set; }
 
-        [MaxLength(100)]
-        public string? ModelVersion { get; set; }
-
-        public int? ManufactureYear { get; set; }
-
         public bool IsDeleted { get; set; } = false;
     }
 }
