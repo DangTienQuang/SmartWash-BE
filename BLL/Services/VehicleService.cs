@@ -36,7 +36,9 @@ namespace AutoWashPro.BLL.Services
                     VehicleTypeId = v.VehicleTypeId,
                     VehicleType = v.VehicleType.Name,
                     RegistrationPhotoUrl = v.RegistrationPhotoUrl,
-                    CarModel = v.CarModelId.HasValue ? v.CarModelEntity.Name : v.CarModel
+                    CarModel = v.CarModelId.HasValue && v.CarModelEntity != null ? v.CarModelEntity.Name : v.CarModel,
+                    ModelVersion = v.CarModelEntity != null ? v.CarModelEntity.ModelVersion : null,
+                    ManufactureYear = v.CarModelEntity != null ? v.CarModelEntity.ManufactureYear : null
                 }).ToListAsync();
         }
 
@@ -154,7 +156,9 @@ namespace AutoWashPro.BLL.Services
                     OwnerPhone = v.User != null ? v.User.PhoneNumber : null,
                     RegistrationPhotoUrl = v.RegistrationPhotoUrl,
                     UserNote = v.UserNote,
-                    CarModel = v.CarModel
+                    CarModel = v.CarModel,
+                    ModelVersion = v.CarModelEntity != null ? v.CarModelEntity.ModelVersion : null,
+                    ManufactureYear = v.CarModelEntity != null ? v.CarModelEntity.ManufactureYear : null
                 }).ToListAsync();
         }
 
@@ -375,6 +379,7 @@ namespace AutoWashPro.BLL.Services
 
             var vehicle = await _context.Vehicles
                 .Include(v => v.VehicleType)
+                .Include(v => v.CarModelEntity)
                 .Include(v => v.User)
                     .ThenInclude(u => u.CustomerProfile)
                         .ThenInclude(cp => cp.Tier)
@@ -406,7 +411,9 @@ namespace AutoWashPro.BLL.Services
                 HasActiveBooking = activeBooking != null,
                 ActiveBookingId = activeBooking?.BookingId,
                 ScheduledTime = activeBooking?.ScheduledTime,
-                CarModel = vehicle.CarModel
+                CarModel = vehicle.CarModelId.HasValue && vehicle.CarModelEntity != null ? vehicle.CarModelEntity.Name : vehicle.CarModel,
+                ModelVersion = vehicle.CarModelEntity?.ModelVersion,
+                ManufactureYear = vehicle.CarModelEntity?.ManufactureYear
             };
         }
     }

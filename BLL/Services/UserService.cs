@@ -27,6 +27,8 @@ namespace AutoWashPro.BLL.Services
                     .ThenInclude(cp => cp.Tier)
                 .Include(u => u.Vehicles)
                     .ThenInclude(v => v.VehicleType)
+                .Include(u => u.Vehicles)
+                    .ThenInclude(v => v.CarModelEntity)
                 .FirstOrDefaultAsync(u => u.UserId == userId);
 
             if (user == null) throw new NotFoundException("Không tìm thấy người dùng.");
@@ -45,7 +47,12 @@ namespace AutoWashPro.BLL.Services
                 Vehicles = user.Vehicles.Select(v => new VehicleDTO
                 {
                     LicensePlate = v.LicensePlate,
-                    VehicleType = v.VehicleType?.Name
+                    VehicleTypeId = v.VehicleTypeId,
+                    VehicleType = v.VehicleType?.Name,
+                    RegistrationPhotoUrl = v.RegistrationPhotoUrl,
+                    CarModel = v.CarModelId.HasValue && v.CarModelEntity != null ? v.CarModelEntity.Name : v.CarModel,
+                    ModelVersion = v.CarModelEntity?.ModelVersion,
+                    ManufactureYear = v.CarModelEntity?.ManufactureYear
                 }).ToList(),
                 DateOfBirth = user.CustomerProfile?.DateOfBirth
             };

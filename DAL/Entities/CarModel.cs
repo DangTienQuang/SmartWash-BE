@@ -16,6 +16,11 @@ namespace AutoWashPro.DAL.Entities
         [MaxLength(100)]
         public string Name { get; set; } // Tên dòng xe (VD: Vios, CX-5)
 
+        [MaxLength(100)]
+        public string? ModelVersion { get; set; }
+
+        public int? ManufactureYear { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         [Required]

@@ -27,6 +27,8 @@ namespace AutoWashPro.BLL.DTOs
         public string VehicleType { get; set; }
         public string? RegistrationPhotoUrl { get; set; }
         public string? CarModel { get; set; }
+        public string? ModelVersion { get; set; }
+        public int? ManufactureYear { get; set; }
     }
 
     public class CreateVehicleDTO
@@ -43,6 +45,7 @@ namespace AutoWashPro.BLL.DTOs
         public string? UserNote { get; set; }
         public int? CarModelId { get; set; }
         public string? CarModel { get; set; }
+
     }
 
     public class UpdateVehicleDTO
@@ -53,6 +56,7 @@ namespace AutoWashPro.BLL.DTOs
         public string? UserNote { get; set; }
         public int? CarModelId { get; set; }
         public string? CarModel { get; set; }
+
     }
 
     public class UpdateUserProfileDTO
@@ -104,6 +108,8 @@ namespace AutoWashPro.BLL.DTOs
         public int? ActiveBookingId { get; set; }
         public DateTime? ScheduledTime { get; set; }
         public string? CarModel { get; set; }
+        public string? ModelVersion { get; set; }
+        public int? ManufactureYear { get; set; }
     }
 
     public class AdminOtherVehicleDTO
@@ -117,6 +123,8 @@ namespace AutoWashPro.BLL.DTOs
         public string? RegistrationPhotoUrl { get; set; }
         public string? UserNote { get; set; }
         public string? CarModel { get; set; }
+        public string? ModelVersion { get; set; }
+        public int? ManufactureYear { get; set; }
     }
 
     public class UpdateVehicleTypeAdminDTO
