@@ -87,8 +87,7 @@ namespace BLL.Services
                 return LaneScheduleResult.Fail("Danh sách phương tiện không được để trống.");
 
             var lanes = await _context.Lanes
-                .Where(x => x.BranchId == branchId && x.IsActive)
-                .OrderBy(x => x.IsBusinessLane ? 0 : 1) // business lane gets first pick
+                .Where(x => x.BranchId == branchId && x.IsActive && x.IsBusinessLane)
                 .ToListAsync();
 
             if (!lanes.Any())
