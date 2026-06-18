@@ -150,8 +150,8 @@ namespace API.Controllers
         }
 
         [Authorize(Roles = "Business")]
-        [HttpPut("{id}/reschedule")]
-        public async Task<IActionResult> RescheduleBooking(int id, [FromBody] RescheduleBookingDTO dto)
+        [HttpPut("reschedule/{id}")]
+        public async Task<IActionResult> RescheduleBooking(int id, [FromBody] RescheduleBusinessBookingDTO dto)
         {
             int userId = ClaimHelper.GetUserId(User);
             dto.BookingId = id;

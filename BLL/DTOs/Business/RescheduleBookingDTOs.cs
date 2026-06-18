@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 
 namespace BLL.DTOs.Business
 {
-    public class RescheduleBookingDTO
+    public class RescheduleBusinessBookingDTO
     {
         public int BookingId { get; set; }
         public DateTime NewScheduledDate { get; set; }  // new date
         public int NewSlotId { get; set; }   // new slot id (could be same or different)
     }
 
-    public class RescheduleResponseDTO
+    public class RescheduleBusinessResponseDTO
     {
         public int BookingId { get; set; }
         public string LicensePlate { get; set; } = string.Empty;

@@ -121,10 +121,29 @@ namespace BLL.Services
                 }
                 else
                 {
-                    // Show how deep into the slot the last vehicle finishes
+                    // Show how deep into the slot the last vehicle finishes (kept for compat)
                     var lastEnd = simResult.Assignments.Max(a => a.EstimatedEnd);
                     slotDto.EstimatedLastEndMinutesIntoSlot =
                         (int)(lastEnd - slotStart).TotalMinutes;
+
+                    // NEW: per-vehicle projected start/end times, so Business B sees
+                    // exactly when each of their vehicles will actually check in —
+                    // already accounting for Business A's earlier confirmed occupancy
+                    // on the same lanes (handled inside ScheduleFleetAsync's lookup).
+                    var laneIds = simResult.Assignments.Select(a => a.LaneId).Distinct().ToList();
+                    var laneNames = await _context.Lanes
+                        .Where(x => laneIds.Contains(x.LaneId))
+                        .ToDictionaryAsync(x => x.LaneId, x => x.Name);
+
+                    slotDto.VehicleProjections = simResult.Assignments
+                        .Select(a => new VehicleSlotProjectionDTO
+                        {
+                            FleetVehicleId = a.FleetVehicleId,
+                            EstimatedStart = a.EstimatedStart,
+                            EstimatedEnd = a.EstimatedEnd,
+                            LaneName = laneNames.TryGetValue(a.LaneId, out var ln) ? ln : ""
+                        })
+                        .ToList();
                 }
 
                 response.Add(slotDto);
@@ -346,7 +365,7 @@ namespace BLL.Services
             };
         }
 
-        public async Task<RescheduleResponseDTO> RescheduleBookingAsync(int businessUserId, DTOs.Business.RescheduleBookingDTO dto)
+        public async Task<RescheduleBusinessResponseDTO> RescheduleBookingAsync(int businessUserId, DTOs.Business.RescheduleBusinessBookingDTO dto)
         {
             // ── Validate business + booking ownership ─────────────────────────
             var business = await _context.BusinessProfiles
@@ -496,7 +515,7 @@ namespace BLL.Services
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return new RescheduleResponseDTO
+                return new RescheduleBusinessResponseDTO
                 {
                     BookingId = booking.BookingId,
                     LicensePlate = booking.LicensePlate,
