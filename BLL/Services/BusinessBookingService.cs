@@ -346,7 +346,7 @@ namespace BLL.Services
             };
         }
 
-        public async Task<RescheduleResponseDTO> RescheduleBookingAsync(int businessUserId, RescheduleBookingDTO dto)
+        public async Task<RescheduleResponseDTO> RescheduleBookingAsync(int businessUserId, DTOs.Business.RescheduleBookingDTO dto)
         {
             // ── Validate business + booking ownership ─────────────────────────
             var business = await _context.BusinessProfiles
