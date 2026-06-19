@@ -150,6 +150,23 @@ namespace API.Controllers
         }
 
         [Authorize(Roles = "Business")]
+        [HttpPut("reschedule/{id}")]
+        public async Task<IActionResult> RescheduleBooking(int id, [FromBody] RescheduleBusinessBookingDTO dto)
+        {
+            int userId = ClaimHelper.GetUserId(User);
+            dto.BookingId = id;
+
+            var result = await _businessBookingService.RescheduleBookingAsync(userId, dto);
+
+            return Ok(new
+            {
+                statusCode = 200,
+                message = "Đổi lịch đặt thành công.",
+                data = result
+            });
+        }
+
+        [Authorize(Roles = "Business")]
         [HttpGet("vehicles")]
         public async Task<IActionResult> GetActiveVehicles()
         {

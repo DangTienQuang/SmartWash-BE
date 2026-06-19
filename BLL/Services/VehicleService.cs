@@ -50,7 +50,21 @@ namespace AutoWashPro.BLL.Services
 
         public async Task<bool> AddVehicleAsync(int userId, CreateVehicleDTO request)
         {
-            var vehicleType = await _context.VehicleTypes.FirstOrDefaultAsync(t => t.Id == request.VehicleTypeId);
+            int finalVehicleTypeId = request.VehicleTypeId;
+
+            if (request.CarModelId.HasValue)
+            {
+                var carModel = await _context.CarModels.FirstOrDefaultAsync(c => c.Id == request.CarModelId.Value && c.IsActive && c.Status != "Rejected");
+                if (carModel == null)
+                    throw new BadRequestException("Dòng xe bạn chọn không tồn tại hoặc đã ngừng hỗ trợ.");
+
+                if (carModel.VehicleTypeId.HasValue)
+                {
+                    finalVehicleTypeId = carModel.VehicleTypeId.Value;
+                }
+            }
+
+            var vehicleType = await _context.VehicleTypes.FirstOrDefaultAsync(t => t.Id == finalVehicleTypeId);
             if (vehicleType == null) throw new BadRequestException("Loại xe không hợp lệ.");
 
             string finalPhotoUrl = request.RegistrationPhotoUrl;
@@ -87,7 +101,7 @@ namespace AutoWashPro.BLL.Services
 
             if (request.CarModelId.HasValue)
             {
-                var carModelExists = await _context.CarModels.AnyAsync(c => c.Id == request.CarModelId.Value && c.IsActive && c.Status != "Rejected");
+                var carModelExists = await _context.CarModels.AnyAsync(c => c.Id == request.CarModelId.Value && c.IsActive);
                 if (!carModelExists)
                     throw new BadRequestException("Dòng xe bạn chọn không tồn tại hoặc đã ngừng hỗ trợ.");
 
@@ -113,7 +127,7 @@ namespace AutoWashPro.BLL.Services
 
                 existingVehicle.IsDeleted = false;
                 existingVehicle.UserId = userId;
-                existingVehicle.VehicleTypeId = request.VehicleTypeId;
+                existingVehicle.VehicleTypeId = finalVehicleTypeId;
                 existingVehicle.RegistrationPhotoUrl = finalPhotoUrl;
                 existingVehicle.UserNote = request.UserNote;
                 existingVehicle.CarModelId = finalCarModelId;
@@ -124,7 +138,7 @@ namespace AutoWashPro.BLL.Services
                 var vehicle = new Vehicle
                 {
                     LicensePlate = normalizedPlate,
-                    VehicleTypeId = request.VehicleTypeId,
+                    VehicleTypeId = finalVehicleTypeId,
                     UserId = userId,
                     RegistrationPhotoUrl = finalPhotoUrl,
                     UserNote = request.UserNote,
@@ -300,7 +314,21 @@ namespace AutoWashPro.BLL.Services
             var vehicle = await _context.Vehicles.FirstOrDefaultAsync(v => v.LicensePlate == licensePlate && v.UserId == userId && !v.IsDeleted);
             if (vehicle == null) throw new NotFoundException("Không tìm thấy phương tiện hoặc bạn không có quyền thao tác trên xe này.");
 
-            var vehicleType = await _context.VehicleTypes.FirstOrDefaultAsync(t => t.Id == request.VehicleTypeId);
+            int finalVehicleTypeId = request.VehicleTypeId;
+
+            if (request.CarModelId.HasValue)
+            {
+                var carModel = await _context.CarModels.FirstOrDefaultAsync(c => c.Id == request.CarModelId.Value && c.IsActive && c.Status != "Rejected");
+                if (carModel == null)
+                    throw new BadRequestException("Dòng xe bạn chọn không tồn tại hoặc đã ngừng hỗ trợ.");
+
+                if (carModel.VehicleTypeId.HasValue)
+                {
+                    finalVehicleTypeId = carModel.VehicleTypeId.Value;
+                }
+            }
+
+            var vehicleType = await _context.VehicleTypes.FirstOrDefaultAsync(t => t.Id == finalVehicleTypeId);
             if (vehicleType == null) throw new BadRequestException("Loại xe không hợp lệ.");
 
             string finalPhotoUrl = vehicle.RegistrationPhotoUrl;
@@ -328,7 +356,7 @@ namespace AutoWashPro.BLL.Services
 
             if (request.CarModelId.HasValue)
             {
-                var carModelExists = await _context.CarModels.AnyAsync(c => c.Id == request.CarModelId.Value && c.IsActive && c.Status != "Rejected");
+                var carModelExists = await _context.CarModels.AnyAsync(c => c.Id == request.CarModelId.Value && c.IsActive);
                 if (!carModelExists)
                     throw new BadRequestException("Dòng xe bạn chọn không tồn tại hoặc đã ngừng hỗ trợ.");
 
@@ -344,7 +372,7 @@ namespace AutoWashPro.BLL.Services
                 finalCarModel = request.CarModel.Trim();
             }
 
-            vehicle.VehicleTypeId = request.VehicleTypeId;
+            vehicle.VehicleTypeId = finalVehicleTypeId;
             vehicle.RegistrationPhotoUrl = finalPhotoUrl;
 
             if (!string.IsNullOrWhiteSpace(request.UserNote))
