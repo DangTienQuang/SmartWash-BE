@@ -36,7 +36,9 @@ namespace AutoWashPro.BLL.Services
                     VehicleTypeId = v.VehicleTypeId,
                     VehicleType = v.VehicleType.Name,
                     RegistrationPhotoUrl = v.RegistrationPhotoUrl,
-                    CarModel = v.CarModelId.HasValue && v.CarModelEntity != null ? v.CarModelEntity.Name : v.CarModel,
+                    CarModel = v.CarModelId.HasValue ? v.CarModelEntity.Name : v.CarModel,
+                    Brand = v.CarModelId.HasValue ? v.CarModelEntity.Brand : null,
+                    UserNote = v.UserNote,
                     ModelVersion = v.CarModelEntity != null ? v.CarModelEntity.ModelVersion : null,
                     ManufactureYear = v.CarModelEntity != null ? v.CarModelEntity.ManufactureYear : null
                 }).ToListAsync();
@@ -50,7 +52,7 @@ namespace AutoWashPro.BLL.Services
 
         public async Task<bool> AddVehicleAsync(int userId, CreateVehicleDTO request)
         {
-            int finalVehicleTypeId = request.VehicleTypeId;
+            int? finalVehicleTypeId = request.VehicleTypeId > 0 ? request.VehicleTypeId : null;
 
             if (request.CarModelId.HasValue)
             {
@@ -64,7 +66,9 @@ namespace AutoWashPro.BLL.Services
                 }
             }
 
-            var vehicleType = await _context.VehicleTypes.FirstOrDefaultAsync(t => t.Id == finalVehicleTypeId);
+            if (!finalVehicleTypeId.HasValue) throw new BadRequestException("Vui lòng chọn loại xe.");
+
+            var vehicleType = await _context.VehicleTypes.FirstOrDefaultAsync(t => t.Id == finalVehicleTypeId.Value);
             if (vehicleType == null) throw new BadRequestException("Loại xe không hợp lệ.");
 
             string finalPhotoUrl = request.RegistrationPhotoUrl;
@@ -127,7 +131,7 @@ namespace AutoWashPro.BLL.Services
 
                 existingVehicle.IsDeleted = false;
                 existingVehicle.UserId = userId;
-                existingVehicle.VehicleTypeId = finalVehicleTypeId;
+                existingVehicle.VehicleTypeId = finalVehicleTypeId.Value;
                 existingVehicle.RegistrationPhotoUrl = finalPhotoUrl;
                 existingVehicle.UserNote = request.UserNote;
                 existingVehicle.CarModelId = finalCarModelId;
@@ -138,7 +142,7 @@ namespace AutoWashPro.BLL.Services
                 var vehicle = new Vehicle
                 {
                     LicensePlate = normalizedPlate,
-                    VehicleTypeId = finalVehicleTypeId,
+                    VehicleTypeId = finalVehicleTypeId.Value,
                     UserId = userId,
                     RegistrationPhotoUrl = finalPhotoUrl,
                     UserNote = request.UserNote,
@@ -314,7 +318,7 @@ namespace AutoWashPro.BLL.Services
             var vehicle = await _context.Vehicles.FirstOrDefaultAsync(v => v.LicensePlate == licensePlate && v.UserId == userId && !v.IsDeleted);
             if (vehicle == null) throw new NotFoundException("Không tìm thấy phương tiện hoặc bạn không có quyền thao tác trên xe này.");
 
-            int finalVehicleTypeId = request.VehicleTypeId;
+            int? finalVehicleTypeId = request.VehicleTypeId > 0 ? request.VehicleTypeId : null;
 
             if (request.CarModelId.HasValue)
             {
@@ -328,7 +332,9 @@ namespace AutoWashPro.BLL.Services
                 }
             }
 
-            var vehicleType = await _context.VehicleTypes.FirstOrDefaultAsync(t => t.Id == finalVehicleTypeId);
+            if (!finalVehicleTypeId.HasValue) throw new BadRequestException("Vui lòng chọn loại xe.");
+
+            var vehicleType = await _context.VehicleTypes.FirstOrDefaultAsync(t => t.Id == finalVehicleTypeId.Value);
             if (vehicleType == null) throw new BadRequestException("Loại xe không hợp lệ.");
 
             string finalPhotoUrl = vehicle.RegistrationPhotoUrl;
@@ -372,7 +378,7 @@ namespace AutoWashPro.BLL.Services
                 finalCarModel = request.CarModel.Trim();
             }
 
-            vehicle.VehicleTypeId = finalVehicleTypeId;
+            vehicle.VehicleTypeId = finalVehicleTypeId.Value;
             vehicle.RegistrationPhotoUrl = finalPhotoUrl;
 
             if (!string.IsNullOrWhiteSpace(request.UserNote))

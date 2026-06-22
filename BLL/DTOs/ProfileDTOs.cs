@@ -27,6 +27,8 @@ namespace AutoWashPro.BLL.DTOs
         public string VehicleType { get; set; }
         public string? RegistrationPhotoUrl { get; set; }
         public string? CarModel { get; set; }
+        public string? Brand { get; set; }
+        public string? UserNote { get; set; }
         public string? ModelVersion { get; set; }
         public int? ManufactureYear { get; set; }
     }
@@ -37,8 +39,7 @@ namespace AutoWashPro.BLL.DTOs
         [RegularExpression(@"^[0-9]{2}[A-Z0-9]-[0-9]{3,5}(\.[0-9]{2})?$", ErrorMessage = "Biển số xe không hợp lệ (VD: 51H-123.45).")]
         public string LicensePlate { get; set; }
 
-        [Required(ErrorMessage = "Vui lòng chọn loại xe.")]
-        public int VehicleTypeId { get; set; }
+        public int? VehicleTypeId { get; set; }
 
         public string? RegistrationPhotoUrl { get; set; }
         public IFormFile? PhotoFile { get; set; }
@@ -50,8 +51,7 @@ namespace AutoWashPro.BLL.DTOs
 
     public class UpdateVehicleDTO
     {
-        [Required(ErrorMessage = "Vui lòng chọn loại xe.")]
-        public int VehicleTypeId { get; set; }
+        public int? VehicleTypeId { get; set; }
         public IFormFile? PhotoFile { get; set; }
         public string? UserNote { get; set; }
         public int? CarModelId { get; set; }
