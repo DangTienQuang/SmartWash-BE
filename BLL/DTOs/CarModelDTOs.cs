@@ -10,6 +10,12 @@ namespace AutoWashPro.BLL.DTOs
         public string Status { get; set; }
         public int? RequestedByUserId { get; set; }
         public int? VehicleTypeId { get; set; }
+
+        [StringLength(100, ErrorMessage = "Model version must not exceed 100 characters.")]
+        public string? ModelVersion { get; set; }
+
+        [Range(1900, 2100, ErrorMessage = "Manufacture year is invalid.")]
+        public int? ManufactureYear { get; set; }
     }
 
     public class CreateCarModelDTO
@@ -19,6 +25,12 @@ namespace AutoWashPro.BLL.DTOs
         [Required]
         public string Name { get; set; }
         public int? VehicleTypeId { get; set; }
+
+        [StringLength(100, ErrorMessage = "Model version must not exceed 100 characters.")]
+        public string? ModelVersion { get; set; }
+
+        [Range(1900, 2100, ErrorMessage = "Manufacture year is invalid.")]
+        public int? ManufactureYear { get; set; }
     }
 
     public class UpdateCarModelDTO
@@ -27,6 +39,12 @@ namespace AutoWashPro.BLL.DTOs
         public string Brand { get; set; }
         [Required]
         public string Name { get; set; }
+
+        [StringLength(100, ErrorMessage = "Model version must not exceed 100 characters.")]
+        public string? ModelVersion { get; set; }
+
+        [Range(1900, 2100, ErrorMessage = "Manufacture year is invalid.")]
+        public int? ManufactureYear { get; set; }
         public bool IsActive { get; set; }
     }
 

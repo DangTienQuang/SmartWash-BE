@@ -34,6 +34,8 @@ namespace AutoWashPro.BLL.Services
                     Status = c.Status,
                     RequestedByUserId = c.RequestedByUserId,
                     VehicleTypeId = c.VehicleTypeId
+                    ModelVersion = c.ModelVersion,
+                    ManufactureYear = c.ManufactureYear
                 })
                 .ToListAsync();
         }
@@ -52,6 +54,8 @@ namespace AutoWashPro.BLL.Services
                 Name = request.Name,
                 Status = "Approved",
                 VehicleTypeId = request.VehicleTypeId
+                ModelVersion = request.ModelVersion?.Trim(),
+                ManufactureYear = request.ManufactureYear
             };
             _context.CarModels.Add(newModel);
             var result = await _context.SaveChangesAsync();
@@ -65,6 +69,8 @@ namespace AutoWashPro.BLL.Services
 
             model.Brand = request.Brand;
             model.Name = request.Name;
+            model.ModelVersion = request.ModelVersion?.Trim();
+            model.ManufactureYear = request.ManufactureYear;
             model.IsActive = request.IsActive;
 
             await _context.SaveChangesAsync();
