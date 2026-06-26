@@ -158,6 +158,11 @@ namespace AutoWashPro.BLL.DTOs
         public decimal FinalAmount { get; set; }
     }
 
+    public class AdminBookingResponseDTO : BookingResponseDTO
+    {
+        public string PaymentStatus { get; set; } = "Unpaid";
+    }
+
     public class UpdateVehicleConditionDTO
     {
         [Required]
