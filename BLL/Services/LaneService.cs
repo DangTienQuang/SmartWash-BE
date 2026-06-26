@@ -49,7 +49,8 @@ namespace AutoWashPro.BLL.Services
                 LaneId = lane.LaneId,
                 Name = lane.Name,
                 BranchId = lane.BranchId,
-                IsActive = lane.IsActive
+                IsActive = lane.IsActive,
+                IsBusinessLane = lane.IsBusinessLane
             };
         }
 
