@@ -1,5 +1,7 @@
-﻿using AutoWashPro.BLL.Exceptions;
+﻿using AutoWashPro.BLL.DTOs;
+using AutoWashPro.BLL.Exceptions;
 using AutoWashPro.DAL.Data;
+using AutoWashPro.DAL.Entities;
 using BLL.DTOs.Fleet;
 using BLL.Services.Interface;
 using DAL.Entities;
@@ -494,6 +496,32 @@ namespace BLL.Services
                 FileName = "FleetTemplate.xlsx",
                 DownloadUrl = url
             });
+        }
+
+        public async Task<LaneDTO> CreateBusinessLaneAsync(CreateBusinessLaneDTO dto)
+        {
+            var branch = await _context.Branches.FindAsync(dto.BranchId);
+            if (branch == null) throw new NotFoundException("Không tìm thấy chi nhánh.");
+
+            var lane = new Lane
+            {
+                Name = dto.Name,
+                BranchId = dto.BranchId,
+                IsActive = true,
+                IsBusinessLane = true
+            };
+
+            _context.Lanes.Add(lane);
+            await _context.SaveChangesAsync();
+
+            return new LaneDTO
+            {
+                LaneId = lane.LaneId,
+                Name = lane.Name,
+                BranchId = lane.BranchId,
+                IsActive = lane.IsActive,
+                IsBusinessLane = lane.IsBusinessLane
+            };
         }
     }
 }
