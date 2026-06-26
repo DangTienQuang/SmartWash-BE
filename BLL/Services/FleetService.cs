@@ -146,6 +146,13 @@ namespace BLL.Services
                     continue;
                 }
 
+                // Auto-approve if CarModel (Brand + Model name) already exists and is Active
+                bool carModelExists = await _context.CarModels.AnyAsync(x =>
+                    x.Brand == brand &&
+                    x.Name == model &&
+                    x.VehicleTypeId == vehicleType!.Id &&
+                    x.IsActive == true);
+
                 var fleetVehicle = new FleetVehicle
                 {
                     BusinessProfileId = business.BusinessProfileId,
@@ -156,7 +163,7 @@ namespace BLL.Services
                     Model = model,
                     DriverName = driverName,
                     EmployeeCode = employeeCode,
-                    Status = "PendingApproval",
+                    Status = carModelExists ? "Active" : "PendingApproval",
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -259,10 +266,10 @@ namespace BLL.Services
         public async Task<List<StaffPendingVehicleDTO>> GetAllPendingVehiclesAsync(int? businessProfileId = null)
         {
             var query = _context.FleetVehicles
+                .AsQueryable()
                 .Include(x => x.VehicleType)
                 .Include(x => x.BusinessProfile)
-                .Where(x => x.Status == "PendingApproval")
-                .AsQueryable();
+                .Where(x => x.Status == "PendingApproval");
 
             if (businessProfileId.HasValue)
             {
