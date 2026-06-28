@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace AutoWashPro.API.Controllers
+namespace API.Controllers.Staff
 {
     [ApiController]
     [Route("api/v1/operation-staff")]
@@ -36,10 +36,18 @@ namespace AutoWashPro.API.Controllers
         }
 
         [HttpGet("tasks")]
-        public async Task<IActionResult> GetAssignedTasks()
+        [HttpGet("/api/v1/staff/tasks/bookings")]
+        public async Task<IActionResult> GetAssignedTasks([FromQuery] System.DateTime? date)
         {
-            var tasks = await _staffService.GetAssignedBookingsAsync(GetUserId());
+            var tasks = await _staffService.GetAssignedBookingsAsync(GetUserId(), date);
             return Ok(tasks);
+        }
+
+        [HttpPost("lanes/swap")]
+        public async Task<IActionResult> SwapShiftByPhone([FromBody] SwapLaneByPhoneDTO dto)
+        {
+            await _staffService.SwapShiftByPhoneAsync(GetUserId(), dto);
+            return Ok(new { Message = "Đổi ca làm việc thành công." });
         }
         [HttpPost("bookings/{bookingId}/checkin")]
         public async Task<IActionResult> StaffCheckin(int bookingId)
