@@ -9,32 +9,29 @@ namespace AutoWashPro.BLL.Services
     {
         private readonly dynamic? _payOS;
 
-public PayOsService(IConfiguration configuration)
-{
-    var clientId = configuration["PayOS:ClientId"];
-    var apiKey = configuration["PayOS:ApiKey"];
-    var checksumKey = configuration["PayOS:ChecksumKey"];
-
-    if (!string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(checksumKey))
-    {
-        try 
+        public PayOsService(IConfiguration configuration)
         {
+            var payOsConfig = configuration.GetSection("PayOS");
+            var clientId = payOsConfig["ClientId"];
+            var apiKey = payOsConfig["ApiKey"];
+            var checksumKey = payOsConfig["ChecksumKey"];
 
-            var asm = System.Reflection.Assembly.Load("Net.payOS");
-            var type = asm.GetType("Net.payOS.PayOS");
-            
-            if (type != null) 
+            if (!string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(checksumKey))
             {
-                _payOS = Activator.CreateInstance(type, clientId, apiKey, checksumKey)!;
+                try
+                {
+                    var asm = System.Reflection.Assembly.Load("Net.payOS");
+                    var type = asm.GetType("Net.payOS.PayOS");
+                    if (type != null) {
+                        _payOS = Activator.CreateInstance(type, clientId, apiKey, checksumKey)!;
+                    }
+                }
+                catch
+                {
+                    _payOS = null; // Fail silently to protect DI container
+                }
             }
-        } 
-        catch 
-        {
-
-            _payOS = null; 
         }
-    }
-}
 
         public async Task<PayOsPaymentResult> CreatePaymentLinkAsync(long orderCode, int amount, string description, string userId)
         {
