@@ -1211,53 +1211,107 @@ namespace AutoWashPro.BLL.Services
                 .Where(v => v.LicensePlate == normalizedPlate && !v.IsDeleted)
                 .FirstOrDefaultAsync();
 
-            var vehicleTypeQuery = existingVehicle != null
-                ? new { VehicleId = existingVehicle.Id, LicensePlate = existingVehicle.LicensePlate, BaseWeight = existingVehicle.VehicleType.BaseWeight, VehicleTypeId = existingVehicle.VehicleTypeId }
-                : null;
+            int resolvedVehicleTypeId;
+            int resolvedVehicleId;
+            int resolvedBaseWeight;
 
-            if (existingVehicle == null)
+            if (existingVehicle != null)
             {
-                 var otherVehicleType = await _context.VehicleTypes.FirstOrDefaultAsync(vt => vt.Name == "Khác");
-                 if (otherVehicleType == null)
-                 {
-                     otherVehicleType = new VehicleType { Name = "Khác", BaseWeight = 1 };
-                     _context.VehicleTypes.Add(otherVehicleType);
-                     await _context.SaveChangesAsync();
-                 }
-
-                 var otherCarModel = await _context.CarModels.FirstOrDefaultAsync(cm => cm.Name == "Khác");
-                 if (otherCarModel == null)
-                 {
-                     otherCarModel = new CarModel { Name = "Khác", Brand = "Khác" };
-                     _context.CarModels.Add(otherCarModel);
-                     try
-                     {
-                         await _context.SaveChangesAsync();
-                     }
-                     catch (DbUpdateException ex)
-                     {
-                         throw new Exception($"Database update failed during CarModel creation: {ex.InnerException?.Message ?? ex.Message}", ex);
-                     }
-                 }
-
-                 var newVehicle = new Vehicle
-                 {
-                     UserId = customerUserId,
-                     LicensePlate = normalizedPlate,
-                     VehicleTypeId = otherVehicleType.Id,
-                     CarModelId = otherCarModel.Id
-                 };
-                 _context.Vehicles.Add(newVehicle);
-                 try
-                 {
-                     await _context.SaveChangesAsync();
-                 }
-                 catch (DbUpdateException ex)
-                 {
-                     throw new Exception($"Database update failed during Vehicle creation: {ex.InnerException?.Message ?? ex.Message}", ex);
-                 }
-                 vehicleTypeQuery = new { VehicleId = newVehicle.Id, LicensePlate = newVehicle.LicensePlate, BaseWeight = otherVehicleType.BaseWeight, VehicleTypeId = otherVehicleType.Id };
+                resolvedVehicleId = existingVehicle.Id;
+                resolvedBaseWeight = existingVehicle.VehicleType.BaseWeight;
+                resolvedVehicleTypeId = request.VehicleTypeId.HasValue && request.VehicleTypeId.Value > 0
+                    ? request.VehicleTypeId.Value
+                    : existingVehicle.VehicleTypeId;
             }
+            else if (request.VehicleTypeId.HasValue && request.VehicleTypeId.Value > 0)
+            {
+                var requestedType = await _context.VehicleTypes
+                    .FirstOrDefaultAsync(vt => vt.Id == request.VehicleTypeId.Value);
+                if (requestedType == null)
+                    throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Loại xe {request.VehicleTypeId.Value} không tồn tại.");
+
+                var otherCarModel = await _context.CarModels.FirstOrDefaultAsync(cm => cm.Name == "Khác");
+                if (otherCarModel == null)
+                {
+                    otherCarModel = new CarModel { Name = "Khác", Brand = "Khác" };
+                    _context.CarModels.Add(otherCarModel);
+                    try
+                    {
+                        await _context.SaveChangesAsync();
+                    }
+                    catch (DbUpdateException ex)
+                    {
+                        throw new Exception($"Database update failed during CarModel creation: {ex.InnerException?.Message ?? ex.Message}", ex);
+                    }
+                }
+
+                var newVehicle = new Vehicle
+                {
+                    UserId = customerUserId,
+                    LicensePlate = normalizedPlate,
+                    VehicleTypeId = requestedType.Id,
+                    CarModelId = otherCarModel.Id
+                };
+                _context.Vehicles.Add(newVehicle);
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex)
+                {
+                    throw new Exception($"Database update failed during Vehicle creation: {ex.InnerException?.Message ?? ex.Message}", ex);
+                }
+                resolvedVehicleId = newVehicle.Id;
+                resolvedBaseWeight = requestedType.BaseWeight;
+                resolvedVehicleTypeId = requestedType.Id;
+            }
+            else
+            {
+                var otherVehicleType = await _context.VehicleTypes.FirstOrDefaultAsync(vt => vt.Name == "Khác");
+                if (otherVehicleType == null)
+                {
+                    otherVehicleType = new VehicleType { Name = "Khác", BaseWeight = 1 };
+                    _context.VehicleTypes.Add(otherVehicleType);
+                    await _context.SaveChangesAsync();
+                }
+
+                var otherCarModel = await _context.CarModels.FirstOrDefaultAsync(cm => cm.Name == "Khác");
+                if (otherCarModel == null)
+                {
+                    otherCarModel = new CarModel { Name = "Khác", Brand = "Khác" };
+                    _context.CarModels.Add(otherCarModel);
+                    try
+                    {
+                        await _context.SaveChangesAsync();
+                    }
+                    catch (DbUpdateException ex)
+                    {
+                        throw new Exception($"Database update failed during CarModel creation: {ex.InnerException?.Message ?? ex.Message}", ex);
+                    }
+                }
+
+                var newVehicle = new Vehicle
+                {
+                    UserId = customerUserId,
+                    LicensePlate = normalizedPlate,
+                    VehicleTypeId = otherVehicleType.Id,
+                    CarModelId = otherCarModel.Id
+                };
+                _context.Vehicles.Add(newVehicle);
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex)
+                {
+                    throw new Exception($"Database update failed during Vehicle creation: {ex.InnerException?.Message ?? ex.Message}", ex);
+                }
+                resolvedVehicleId = newVehicle.Id;
+                resolvedBaseWeight = otherVehicleType.BaseWeight;
+                resolvedVehicleTypeId = otherVehicleType.Id;
+            }
+
+            var vehicleTypeQuery = new { VehicleId = resolvedVehicleId, LicensePlate = normalizedPlate, BaseWeight = resolvedBaseWeight, VehicleTypeId = resolvedVehicleTypeId };
 
             var servicePrices = await _context.ServicePrices
                 .Include(sp => sp.Service)
@@ -1272,7 +1326,7 @@ namespace AutoWashPro.BLL.Services
             {
                 var sp = servicePrices.FirstOrDefault(s => s.ServiceId == serviceId);
                 if (sp == null)
-                    throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Dịch vụ {serviceId} không hỗ trợ cho loại xe này.");
+                    throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Dịch vụ {serviceId} không hỗ trợ cho loại xe này tại chi nhánh này.");
 
                 var actualWeight = sp.CapacityWeight > 0 ? sp.CapacityWeight : vehicleTypeQuery.BaseWeight;
                 if (actualWeight > maxCapacityWeight) maxCapacityWeight = actualWeight;
@@ -1382,11 +1436,16 @@ namespace AutoWashPro.BLL.Services
 
                     if (string.Equals(paymentMethod, "PayOS", StringComparison.OrdinalIgnoreCase))
                     {
+                        if (finalAmount <= 0)
+                            throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Không thể tạo link thanh toán PayOS vì tổng tiền dịch vụ = {finalAmount:N0}đ. Vui lòng kiểm tra lại bảng giá dịch vụ cho loại xe này tại chi nhánh.");
+
                         var payOsResult = await _payOsService.CreatePaymentLinkAsync(
                             long.Parse(DateTime.UtcNow.ToString("yyMMddHHmmssfff")),
                             (int)finalAmount,
                             $"Thanh toan #{booking.BookingId}",
-                            "WalkIn"
+                            "WalkIn",
+                            string.IsNullOrWhiteSpace(request.ReturnUrl) ? null : request.ReturnUrl,
+                            string.IsNullOrWhiteSpace(request.CancelUrl) ? null : request.CancelUrl
                         );
                         paymentUrl = payOsResult.CheckoutUrl;
                     }

@@ -130,6 +130,8 @@ namespace AutoWashPro.BLL.DTOs
 
         public int? VehicleId { get; set; }
 
+        public int? VehicleTypeId { get; set; }
+
         [Required]
         [MaxLength(20)]
         public required string LicensePlate { get; set; }
@@ -144,7 +146,11 @@ namespace AutoWashPro.BLL.DTOs
 
         public int? VoucherId { get; set; }
 
-        public string PaymentMethod { get; set; } = "Cash";
+        public string? PaymentMethod { get; set; }
+
+        public string? ReturnUrl { get; set; }
+
+        public string? CancelUrl { get; set; }
     }
 
     public class WalkInBookingResponseDTO : BookingResponseDTO

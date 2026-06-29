@@ -4,7 +4,13 @@ namespace AutoWashPro.BLL.Services
 {
     public interface IPayOsService
     {
-        Task<PayOsPaymentResult> CreatePaymentLinkAsync(long orderCode, int amount, string description, string userId);
+        Task<PayOsPaymentResult> CreatePaymentLinkAsync(
+            long orderCode,
+            int amount,
+            string description,
+            string userId,
+            string? returnUrl = null,
+            string? cancelUrl = null);
         Task<PayOsWebhookResult?> VerifyWebhookDataAsync(object webhookBody);
     }
 

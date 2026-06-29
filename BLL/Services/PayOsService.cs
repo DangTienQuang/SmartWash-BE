@@ -17,7 +17,8 @@ namespace AutoWashPro.BLL.Services
         }
 
         public async Task<PayOsPaymentResult> CreatePaymentLinkAsync(
-            long orderCode, int amount, string description, string userId)
+            long orderCode, int amount, string description, string userId,
+            string? returnUrl = null, string? cancelUrl = null)
         {
             if (amount <= 0)
                 throw new ArgumentException("Số tiền thanh toán PayOS phải lớn hơn 0.", nameof(amount));
@@ -27,8 +28,8 @@ namespace AutoWashPro.BLL.Services
                 OrderCode = orderCode,
                 Amount = amount,
                 Description = description,
-                CancelUrl = "http://localhost:5000/cancel",
-                ReturnUrl = "http://localhost:5000/success"
+                CancelUrl = string.IsNullOrWhiteSpace(cancelUrl) ? "http://localhost:5000/cancel" : cancelUrl,
+                ReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "http://localhost:5000/success" : returnUrl
             };
 
             var response = await _payOSClient.PaymentRequests.CreateAsync(request);
