@@ -43,7 +43,7 @@ namespace AutoWashPro.BLL.Services
             if (request.VehicleTypeId.HasValue)
             {
                 var vehicleTypeExists = await _context.VehicleTypes.AnyAsync(vt => vt.Id == request.VehicleTypeId.Value);
-                if (!vehicleTypeExists) throw new BadRequestException("Loại xe không hợp lệ.");
+                if (!vehicleTypeExists) throw new BadRequestException("Invalid vehicle type.");
             }
 
             var newModel = new CarModel
@@ -89,11 +89,10 @@ namespace AutoWashPro.BLL.Services
             if (finalVehicleTypeId.HasValue)
             {
                 var vehicleTypeExists = await _context.VehicleTypes.AnyAsync(vt => vt.Id == finalVehicleTypeId.Value);
-                if (!vehicleTypeExists) throw new BadRequestException("Loại xe không hợp lệ.");
+                if (!vehicleTypeExists) throw new BadRequestException("Invalid vehicle type.");
             }
             else
             {
-                // Auto-assign to "Khác" (Other) if FE doesn't provide one
                 var otherVehicleType = await _context.VehicleTypes
                     .FirstOrDefaultAsync(vt => vt.Name.Contains("Khác") || vt.Name.Contains("Other"));
 
@@ -105,8 +104,8 @@ namespace AutoWashPro.BLL.Services
                 {
                     var newOtherType = new AutoWashPro.DAL.Entities.VehicleType
                     {
-                        Name = "Khác",
-                        Description = "Các loại xe chưa được phân loại",
+                        Name = "Other",
+                        Description = "Unclassified vehicle types",
                         BaseWeight = 1
                     };
                     _context.VehicleTypes.Add(newOtherType);
@@ -163,11 +162,11 @@ namespace AutoWashPro.BLL.Services
         public async Task<bool> ApproveCarModelAsync(int id, ApproveCarModelDTO request)
         {
             var model = await _context.CarModels.FindAsync(id);
-            if (model == null) throw new NotFoundException("Không tìm thấy dòng xe.");
-            if (model.Status != "Pending") throw new BadRequestException("Chỉ có thể phê duyệt dòng xe đang chờ duyệt.");
+            if (model == null) throw new NotFoundException("Car model not found.");
+            if (model.Status != "Pending") throw new BadRequestException("Only pending car models can be approved.");
 
             var vehicleTypeExists = await _context.VehicleTypes.AnyAsync(vt => vt.Id == request.VehicleTypeId);
-            if (!vehicleTypeExists) throw new BadRequestException("Loại xe không hợp lệ.");
+            if (!vehicleTypeExists) throw new BadRequestException("Invalid vehicle type.");
 
             model.Status = "Approved";
             model.VehicleTypeId = request.VehicleTypeId;
@@ -179,8 +178,8 @@ namespace AutoWashPro.BLL.Services
         public async Task<bool> RejectCarModelAsync(int id)
         {
             var model = await _context.CarModels.FindAsync(id);
-            if (model == null) throw new NotFoundException("Không tìm thấy dòng xe.");
-            if (model.Status != "Pending") throw new BadRequestException("Chỉ có thể từ chối dòng xe đang chờ duyệt.");
+            if (model == null) throw new NotFoundException("Car model not found.");
+            if (model.Status != "Pending") throw new BadRequestException("Only pending car models can be rejected.");
 
             model.Status = "Rejected";
             model.IsActive = false;

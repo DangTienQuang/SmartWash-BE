@@ -1,4 +1,4 @@
-﻿using AutoWashPro.BLL.Exceptions;
+using AutoWashPro.BLL.Exceptions;
 using AutoWashPro.DAL.Data;
 using AutoWashPro.DAL.Entities;
 using BLL.DTOs;
@@ -23,16 +23,13 @@ namespace BLL.Services
     
         public async Task<RegisterBusinessUserResponse> RegisterBusinessUserAsync(RegisterBusinessUserRequest request)
         {
-            // 1. Check phone
             var phoneExists = await _context.Users
                 .AnyAsync(u => u.PhoneNumber == request.PhoneNumber);
-            if (phoneExists) throw new BadRequestException("Số điện thoại này đã được đăng ký.");
+            if (phoneExists) throw new BadRequestException("This phone number is already registered.");
 
-            // 2. Check email
             var emailExists = await _context.Users.AnyAsync(u => u.Email == request.Email);
-            if (emailExists) throw new BadRequestException("Email này đã được dùng để đăng ký.");
+            if (emailExists) throw new BadRequestException("This email is already registered.");
 
-            // 3. Upload documents
             var businessLicenseUrl = await _cloudinaryService
                 .UploadFileAsync(request.BusinessLicense, "business-documents");
 
@@ -42,8 +39,6 @@ namespace BLL.Services
                 authorizationLetterUrl = await _cloudinaryService
                     .UploadFileAsync(request.AuthorizationLetter, "business-documents");
             }
-
-            // 4. Create User + BusinessProfile
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
@@ -76,7 +71,7 @@ namespace BLL.Services
                     DiscountPercent = 0,
                     ContractStartDate = DateTime.UtcNow,
                     ContractEndDate = DateTime.UtcNow.AddYears(1),
-                    IsContractActive = false, // activated after approval
+                    IsContractActive = false,
                 };
                 _context.BusinessProfiles.Add(profile);
                 await _context.SaveChangesAsync();
@@ -128,12 +123,12 @@ namespace BLL.Services
 
             if (profile == null)
             {
-                throw new NotFoundException("Không tìm thấy hồ sơ doanh nghiệp.");
+                throw new NotFoundException("Business profile not found.");
             }
 
             if (profile.ApprovalStatus != "Pending")
             {
-                throw new BadRequestException("Hồ sơ đã được xét duyệt trước đó.");
+                throw new BadRequestException("Profile has already been reviewed.");
             }
 
             profile.ReviewedByUserId = reviewerId;
@@ -179,7 +174,7 @@ namespace BLL.Services
 
             if (profile == null)
             {
-                throw new NotFoundException("Không tìm thấy đơn đăng ký doanh nghiệp.");
+                throw new NotFoundException("Business registration application not found.");
             }
 
             return new PendingBusinessApplicationDTO
@@ -212,7 +207,7 @@ namespace BLL.Services
 
             if (invoice == null)
             {
-                throw new NotFoundException("Không tìm thấy hoá đơn.");
+                throw new NotFoundException("Invoice not found.");
             }
 
             return new InvoiceExportDTO
@@ -259,7 +254,7 @@ namespace BLL.Services
 
             if (business == null)
             {
-                throw new NotFoundException("Không tìm thấy hồ sơ doanh nghiệp.");
+                throw new NotFoundException("Business profile not found.");
             }
 
             var invoiceCode = $"MONTHLY-{businessProfileId}-{year}{month:00}";
@@ -270,7 +265,7 @@ namespace BLL.Services
 
             if (existingInvoice != null)
             {
-                throw new BadRequestException("Hoá đơn theo tháng đã được tạo trước đó.");
+                throw new BadRequestException("Monthly invoice has already been generated.");
             }
 
             var startDate = new DateTime(year, month, 1);
@@ -291,7 +286,7 @@ namespace BLL.Services
 
             if (!completedWashes.Any())
             {
-                throw new BadRequestException("Không có lần rửa xe nào hoàn thành trong khoảng thời gian này.");
+                throw new BadRequestException("No completed washes found in this period.");
             }
 
             var invoice = new Invoice
@@ -332,7 +327,7 @@ namespace BLL.Services
 
             if (!invoiceItems.Any())
             {
-                throw new BadRequestException("Không tạo được mục nào cho hoá đơn.");
+                throw new BadRequestException("No items could be generated for the invoice.");
             }
 
             await _context.InvoiceItems.AddRangeAsync(invoiceItems);

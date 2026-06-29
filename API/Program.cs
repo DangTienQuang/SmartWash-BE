@@ -177,7 +177,6 @@ builder.Services.AddScoped<IFleetService, FleetService>();
 builder.Services.AddScoped<IStaffManagementService, StaffManagementService>();
 builder.Services.AddScoped<ICRMCampaignService, CRMCampaignService>();
 builder.Services.AddScoped<IAnnualTierService, AnnualTierService>();
-builder.Services.AddScoped<IDatabaseSeedingService, DatabaseSeedingService>();
 
 builder.Services.AddHostedService<AutoWashPro.API.Workers.AnnualTierResetWorker>();
 builder.Services.AddHostedService<AutoWashPro.API.Workers.CRMCampaignWorker>();
@@ -265,8 +264,8 @@ app.MapControllers();
 // ==============================================================================
 using (var scope = app.Services.CreateScope())
 {
-    var seedingService = scope.ServiceProvider.GetRequiredService<IDatabaseSeedingService>();
-    await seedingService.InitializeAndSeedAsync();
+    var context = scope.ServiceProvider.GetRequiredService<AutoWashPro.DAL.Data.AutoWashDbContext>();
+    await context.Database.MigrateAsync();
 }
 
 app.Run();

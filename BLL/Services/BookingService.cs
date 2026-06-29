@@ -44,7 +44,6 @@ namespace AutoWashPro.BLL.Services
             var userProfile = await _context.CustomerProfiles.Include(cp => cp.Tier).FirstOrDefaultAsync(cp => cp.UserId == userId);
             if (userProfile == null || userProfile.Tier == null) throw new AutoWashPro.BLL.Exceptions.NotFoundException("Không tìm thấy thông tin hạng thành viên.");
 
-            // 1. SỬA LỖI MÚI GIỜ (Dùng cho cả Docker/Linux/Windows)
             TimeZoneInfo vnTimeZone;
             try { vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"); }
             catch (TimeZoneNotFoundException) { vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh"); }
@@ -59,7 +58,6 @@ namespace AutoWashPro.BLL.Services
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Hạng {userProfile.Tier.TierName} chỉ được đặt trước từ hôm nay đến ngày {maxDate:dd/MM/yyyy}.");
             }
 
-            // 2. TÍNH TỔNG TRỌNG LƯỢNG (WEIGHT) CỦA GIỎ HÀNG KHÁCH VỪA CHỌN
             int totalRequestWeight = 0;
             if (request.ServiceIds != null && request.ServiceIds.Any())
             {
@@ -89,7 +87,6 @@ namespace AutoWashPro.BLL.Services
 
             bool isVip = userProfile.Tier.TierName.ToLower() == "gold" || userProfile.Tier.TierName.ToLower() == "platinum";
 
-            // 3. VÒNG LẶP KIỂM TRA TỪNG SLOT
             foreach (var slot in allSlots)
             {
                 var slotDto = new TimeSlotResponseDTO
@@ -106,7 +103,6 @@ namespace AutoWashPro.BLL.Services
                     slotDto.Reason = "Chỉ dành cho VIP";
                 }
 
-                // Chặn slot quá giờ so với giờ Việt Nam
                 if (request.TargetDate.Date == todayInVN && slot.StartTime < currentTimeInVN)
                 {
                     slotDto.IsAvailable = false;
@@ -115,12 +111,9 @@ namespace AutoWashPro.BLL.Services
 
                 int bookedWeight = dailyCapacities.TryGetValue(slot.SlotId, out int weight) ? weight : 0;
 
-                // --- LOGIC AI SỨC CHỨA ---
-                // Lượng đã đặt + Lượng khách ĐANG ĐỊNH ĐẶT > Sức chứa tối đa
                 if (bookedWeight + totalRequestWeight > slot.MaxCapacity)
                 {
                     slotDto.IsAvailable = false;
-                    // Nếu khách có add xe vào giỏ thì báo "Không đủ chỗ cho dịch vụ", nếu không thì báo "Đã kín"
                     slotDto.Reason = totalRequestWeight > 0 ? "Không đủ sức chứa cho giỏ hàng của bạn" : "Đã kín chỗ";
                 }
 
@@ -196,7 +189,6 @@ namespace AutoWashPro.BLL.Services
 
             var todayInVN = DateTime.UtcNow.ToVnTime().Date;
 
-            // Step 1: Query Bookings for today at the specific branch
             var preBooked = await _context.Bookings
                 .Where(b => (b.LicensePlate ?? "").Replace("-", "").Replace(".", "").Replace(" ", "").ToUpper() == normalizedPlate
                          && b.BranchId == branchId
@@ -230,7 +222,6 @@ namespace AutoWashPro.BLL.Services
                 };
             }
 
-            // Step 2: Query FleetVehicles (Global)
             var fleetVehicle = await _context.FleetVehicles
                 .Include(fv => fv.BusinessProfile)
                 .Include(fv => fv.VehicleType)
@@ -264,7 +255,6 @@ namespace AutoWashPro.BLL.Services
                 };
             }
 
-            // Step 3: WalkIn
             var registeredVehicle = await _context.Vehicles
                 .Include(v => v.User)
                 .ThenInclude(u => u.CustomerProfile)
@@ -331,7 +321,6 @@ namespace AutoWashPro.BLL.Services
 
         public async Task<BookingResponseDTO> UpdateBookingStatusByLicensePlateAsync(string licensePlate, string newStatus)
         {
-            // 1. KIỂM TRA DỮ LIỆU ĐẦU VÀO
             var allowedStatuses = new[] { "Pending", "CheckedIn", "Completed", "Cancelled", "Delayed", "CancelledBySystem" };
             if (!allowedStatuses.Contains(newStatus))
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException("Trạng thái không hợp lệ.");
@@ -340,8 +329,6 @@ namespace AutoWashPro.BLL.Services
             if (string.IsNullOrEmpty(normalizedPlate))
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException("Biển số xe không hợp lệ.");
 
-            // 2. TÌM KIẾM DIỆN RỘNG (Tránh hoàn toàn lỗi lệch giờ UTC vs VN)
-            // Lấy dư ra 24h trước và sau để đảm bảo không bỏ sót bất kỳ đơn nào do lệch timezone
             var startTime = DateTime.UtcNow.AddHours(-24);
             var endTime = DateTime.UtcNow.AddHours(24);
 
@@ -351,7 +338,6 @@ namespace AutoWashPro.BLL.Services
                 .Where(b => b.ScheduledTime >= startTime && b.ScheduledTime <= endTime)
                 .ToListAsync();
 
-            // 3. LỌC CHÍNH XÁC BIỂN SỐ (In-memory)
             var matches = query.Where(b =>
                 NormalizeLicensePlate(b.LicensePlate) == normalizedPlate
             ).ToList();
@@ -361,7 +347,6 @@ namespace AutoWashPro.BLL.Services
                 throw new AutoWashPro.BLL.Exceptions.NotFoundException($"Không tìm thấy lịch hẹn nào cho xe {licensePlate} trong khoảng thời gian gần đây.");
             }
 
-            // 4. LỌC CHÍNH XÁC NGÀY HÔM NAY (Giờ Việt Nam)
             var todayInVN = DateTime.UtcNow.ToVnTime().Date;
             var todaysBookings = matches.Where(b => b.ScheduledTime.ToVnTime().Date == todayInVN).ToList();
 
@@ -377,7 +362,6 @@ namespace AutoWashPro.BLL.Services
 
             var booking = todaysBookings.First();
 
-            // 5. KIỂM TRA LOGIC CHUYỂN TRẠNG THÁI (Báo lỗi 400 rõ ràng thay vì 404 Not Found)
             if (booking.Status == newStatus)
             {
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Trạng thái hiện tại của đơn hàng đã là '{newStatus}' rồi.");
@@ -393,7 +377,6 @@ namespace AutoWashPro.BLL.Services
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Không thể chuyển trạng thái từ '{booking.Status}' sang '{newStatus}'.");
             }
 
-            // 6. THỰC THI CẬP NHẬT (Tận dụng logic của hàm UpdateBookingStatusAsync)
             var isUpdated = await UpdateBookingStatusAsync(booking.BookingId, newStatus);
 
             if (!isUpdated)
@@ -401,7 +384,6 @@ namespace AutoWashPro.BLL.Services
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException("Cập nhật trạng thái thất bại do hệ thống.");
             }
 
-            // 7. TRẢ VỀ DTO
             return new BookingResponseDTO
             {
                 BookingId = booking.BookingId,
@@ -542,14 +524,11 @@ namespace AutoWashPro.BLL.Services
                 MaxCapacityOfSlot = slot.MaxCapacity
             };
         }
-        // File: BLL/Services/BookingService.cs
 
         public async Task<bool> SendBookingConfirmationEmailAsync(int userId, int bookingId)
         {
             try
             {
-                // 1. Lấy thông tin Booking và User. 
-                // Phải Include đầy đủ vì context này chạy hoàn toàn độc lập với luồng CreateBooking
                 var booking = await _context.Bookings
                     .Include(b => b.BookingDetails)
                         .ThenInclude(bd => bd.Service)
@@ -557,7 +536,6 @@ namespace AutoWashPro.BLL.Services
                         .ThenInclude(u => u.CustomerProfile)
                     .FirstOrDefaultAsync(b => b.BookingId == bookingId && b.UserId == userId);
 
-                // 2. Validate an toàn
                 if (booking == null || string.IsNullOrEmpty(booking.User?.Email))
                 {
                     Console.WriteLine($"[Cảnh báo] Không thể gửi mail: Không tìm thấy đơn #{bookingId} hoặc User không có email.");
@@ -566,14 +544,12 @@ namespace AutoWashPro.BLL.Services
 
                 var customerName = booking.User.CustomerProfile?.FullName ?? "Quý khách";
 
-                // 3. Build HTML Template (Nghiệp vụ tốn CPU)
                 var emailHtml = EmailTemplateBuilder.BuildBookingConfirmationEmail(
                     booking,
                     booking.BookingDetails.ToList(),
                     customerName
                 );
 
-                // 4. Gọi Service Gửi mail
                 await _emailService.SendEmailAsync(
                     booking.User.Email,
                     $"[SmartWash] Đặt lịch thành công - #{booking.BookingId}",
@@ -584,8 +560,6 @@ namespace AutoWashPro.BLL.Services
             }
             catch (Exception ex)
             {
-                // Trong Background Task, KHÔNG ĐƯỢC throw exception làm crash app. 
-                // Chỉ ghi Log để Developer trace lỗi.
                 Console.WriteLine($"[Lỗi Background Task - Email] Booking #{bookingId}: {ex.Message}");
                 return false;
             }
@@ -645,7 +619,6 @@ namespace AutoWashPro.BLL.Services
                 });
             }
 
-            // PHASE 3: Capacity AI
             using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
 
             var dailyCapacity = await _context.DailySlotCapacities.FirstOrDefaultAsync(dc => dc.SlotId == slot.SlotId && dc.BranchId == request.BranchId && dc.Date == targetDateTime.Date);
@@ -671,18 +644,15 @@ namespace AutoWashPro.BLL.Services
             }
             else
             {
-               // Re-fetch to ensure we have the latest version before modifying
                dailyCapacity = await _context.DailySlotCapacities.FirstAsync(dc => dc.SlotId == slot.SlotId && dc.Date == targetDateTime.Date);
             }
 
             if (dailyCapacity.BookedWeight + maxCapacityWeight > slot.MaxCapacity)
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException("Xưởng không đủ sức chứa cho xe này. Vui lòng chọn khung giờ khác.");
 
-            // PHASE 4: Financial Math
             var (voucherDiscount, pointDiscount, pointsUsed, finalAmount, userVoucher) =
                 await CalculateBookingPricingAsync(userId, totalOriginalPrice, request.VoucherId, request.PointsToUse, targetDateTime, vehicleTypeQuery.VehicleTypeId);
 
-            // PHASE 5: Transaction
             var paymentMethod = request.PaymentMethod?.Trim() ?? "Wallet";
             var isPayOsPayment = string.Equals(paymentMethod, "PayOS", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(paymentMethod, "QR", StringComparison.OrdinalIgnoreCase);
@@ -703,7 +673,6 @@ namespace AutoWashPro.BLL.Services
 
             try
             {
-                // Update Capacity
                 dailyCapacity.BookedWeight += maxCapacityWeight;
                 try
                 {
@@ -729,7 +698,6 @@ namespace AutoWashPro.BLL.Services
                     _context.Transactions.Add(paymentTx);
                 }
 
-                // Apply Voucher & Points
                 if (userVoucher != null)
                 {
                     userVoucher.UsageCount += 1;
@@ -744,7 +712,6 @@ namespace AutoWashPro.BLL.Services
                     await _walletService.DeductSpendablePointsAsync(userId, pointsUsed, "Dùng điểm giảm giá đặt lịch");
                 }
 
-                // Create Booking
                 var booking = new Booking
                 {
                     UserId = userId,
@@ -762,7 +729,7 @@ namespace AutoWashPro.BLL.Services
                     VoucherDiscountAmount = voucherDiscount,
                     FinalAmount = finalAmount,
                     BookingDetails = pendingDetails,
-                    FallbackQrCode = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper() // Generate a random QR string
+                    FallbackQrCode = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()
                 };
 
                 _context.Bookings.Add(booking);
@@ -776,7 +743,6 @@ namespace AutoWashPro.BLL.Services
 
                 await transaction.CommitAsync();
 
-                // PHASE 6: Post-Processing
                 if (!isPayOsPayment)
                 {
                     var user = await _context.Users.Include(u => u.CustomerProfile).FirstOrDefaultAsync(u => u.UserId == userId);
@@ -938,7 +904,6 @@ namespace AutoWashPro.BLL.Services
                 }
                 else
                 {
-                    // Late cancellation penalty
                     var userProfile = await _context.CustomerProfiles.FirstOrDefaultAsync(cp => cp.UserId == userId);
                 }
 
@@ -1064,18 +1029,16 @@ namespace AutoWashPro.BLL.Services
 
                 if (request.Condition == VehicleCondition.Dirty)
                 {
-                    newSurcharge += basePrice * 0.2m; // 20% Upsell
+                    newSurcharge += basePrice * 0.2m;
                 }
                 else if (request.Condition == VehicleCondition.VeryDirty)
                 {
-                    newSurcharge += basePrice * 0.5m; // 50% Upsell
+                    newSurcharge += basePrice * 0.5m;
                 }
 
                 if (request.ActualVehicleTypeId.HasValue)
                 {
                     booking.ActualVehicleTypeId = request.ActualVehicleTypeId.Value;
-                    // In a real scenario, we might look up the price difference between booked VehicleType and ActualVehicleType.
-                    // For now, we apply a flat mismatch surcharge (e.g., 30% of base price)
                     newSurcharge += basePrice * 0.3m;
                 }
 
@@ -1111,7 +1074,6 @@ namespace AutoWashPro.BLL.Services
                         }
                         else if (surchargeDiff < 0)
                         {
-                            // Refund for downgrading condition
                             decimal refundAmount = Math.Abs(surchargeDiff);
                             wallet.Balance += refundAmount;
 
@@ -1145,7 +1107,6 @@ namespace AutoWashPro.BLL.Services
             if (booking == null) throw new AutoWashPro.BLL.Exceptions.NotFoundException("Không tìm thấy Booking.");
 
             booking.Status = "NoShow";
-            // GIỮ NGUYÊN TIỀN CỌC. TUYỆT ĐỐI KHÔNG GỌI HÀM HOÀN TIỀN (REFUND) Ở ĐÂY.
 
             await _context.SaveChangesAsync();
         }
@@ -1184,7 +1145,6 @@ namespace AutoWashPro.BLL.Services
             {
                 booking.MismatchSurcharge = totalNewPrice - totalOldPrice;
 
-                // Mock Push Notification
                 Console.WriteLine($"[PUSH] Thông báo tới User: Phát sinh phụ phí {booking.MismatchSurcharge} VNĐ do sai lệch loại xe/độ bẩn.");
             }
 
@@ -1201,7 +1161,6 @@ namespace AutoWashPro.BLL.Services
 
             var normalizedPlate = request.LicensePlate.Replace("-", "").Replace(".", "").Trim().ToUpper();
 
-            // Anti-hoarding Rule
             bool hasActiveBooking = await _context.Bookings.AnyAsync(b => b.LicensePlate == normalizedPlate && (b.Status == "Pending" || b.Status == "CheckedIn"));
             if (hasActiveBooking)
                 throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Xe biển số {normalizedPlate} đang có lịch hẹn chưa hoàn thành.");
@@ -1340,7 +1299,6 @@ namespace AutoWashPro.BLL.Services
                 });
             }
 
-            // Find current time slot to update capacity
             var timeOfDay = targetDateTime.TimeOfDay;
             var slot = await _context.TimeSlots
                 .Where(s => s.BranchId == request.BranchId && s.StartTime <= timeOfDay && s.EndTime >= timeOfDay)
@@ -1390,7 +1348,7 @@ namespace AutoWashPro.BLL.Services
                 Booking booking;
                 Transaction paymentTx;
 
-                if (customerUserId == null) // THE GUEST FLOW
+                if (customerUserId == null)
                 {
                     if (string.Equals(paymentMethod, "Wallet", StringComparison.OrdinalIgnoreCase))
                     {
@@ -1450,7 +1408,7 @@ namespace AutoWashPro.BLL.Services
                         paymentUrl = payOsResult.CheckoutUrl;
                     }
                 }
-                else // THE REGISTERED CUSTOMER FLOW
+                else
                 {
                     var (voucherDiscount, pointDiscount, pointsUsed, finalAmount, userVoucher) =
                         await CalculateBookingPricingAsync(customerUserId.Value, totalOriginalPrice, request.VoucherId, request.PointsToUse, targetDateTime, vehicleTypeQuery.VehicleTypeId);

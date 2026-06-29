@@ -1,4 +1,4 @@
-﻿using AutoWashPro.BLL.DTOs;
+using AutoWashPro.BLL.DTOs;
 using AutoWashPro.BLL.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -37,13 +37,13 @@ namespace API.Controllers.User
         public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpDTO request)
         {
             var result = await _authService.VerifyOtpAsync(request);
-            return Ok(new { statusCode = 200, message = "Xác thực email thành công.", data = result });
+            return Ok(new { statusCode = 200, message = "Email verified successfully.", data = result });
         }
         [HttpPost("resend-otp")]
         public async Task<IActionResult> ResendOtp([FromBody] ResendOtpDTO request)
         {
             var response = await _authService.ResendOtpAsync(request);
-            return Ok(new { statusCode = 200, message = "Gửi lại mã OTP thành công", data = response });
+            return Ok(new { statusCode = 200, message = "OTP resent successfully", data = response });
         }
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDTO request)
@@ -62,7 +62,7 @@ namespace API.Controllers.User
             int userId = int.Parse(userIdClaim);
             await _authService.ChangePasswordAsync(userId, request);
 
-            return Ok(new { statusCode = 200, message = "Đổi mật khẩu thành công." });
+            return Ok(new { statusCode = 200, message = "Password changed successfully." });
         }
     }
 }
