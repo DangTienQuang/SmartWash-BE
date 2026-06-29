@@ -9,19 +9,32 @@ namespace AutoWashPro.BLL.Services
     {
         private readonly dynamic? _payOS;
 
-        public PayOsService(IConfiguration configuration)
-        {
-             var clientId = configuration["PayOS:ClientId"];
-             var apiKey = configuration["PayOS:ApiKey"];
-             var checksumKey = configuration["PayOS:ChecksumKey"];
+public PayOsService(IConfiguration configuration)
+{
+    var clientId = configuration["PayOS:ClientId"];
+    var apiKey = configuration["PayOS:ApiKey"];
+    var checksumKey = configuration["PayOS:ChecksumKey"];
 
-            if (!string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(checksumKey))
+    if (!string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(checksumKey))
+    {
+        try 
+        {
+
+            var asm = System.Reflection.Assembly.Load("Net.payOS");
+            var type = asm.GetType("Net.payOS.PayOS");
+            
+            if (type != null) 
             {
-                var asm = System.Reflection.Assembly.Load("payOS");
-                var type = asm.GetType("PayOS.PayOS") ?? throw new Exception("Could not find PayOS class in SDK");
                 _payOS = Activator.CreateInstance(type, clientId, apiKey, checksumKey)!;
             }
+        } 
+        catch 
+        {
+
+            _payOS = null; 
         }
+    }
+}
 
         public async Task<PayOsPaymentResult> CreatePaymentLinkAsync(long orderCode, int amount, string description, string userId)
         {
