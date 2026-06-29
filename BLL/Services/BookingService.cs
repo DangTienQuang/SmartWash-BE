@@ -306,13 +306,18 @@ namespace AutoWashPro.BLL.Services
                 .Where(t => t.ReferenceBookingId.HasValue
                     && ids.Contains(t.ReferenceBookingId.Value)
                     && (EF.Property<string?>(t, nameof(Transaction.TransactionType)) == "Payment"
-                        || EF.Property<string?>(t, nameof(Transaction.TransactionType)) == "BookingPayment"))
+                        || EF.Property<string?>(t, nameof(Transaction.TransactionType)) == "BookingPayment"
+                        || EF.Property<string?>(t, nameof(Transaction.TransactionType)) == "WalkInPayment"))
                 .OrderByDescending(t => t.CreatedAt)
                 .Select(t => new
                 {
                     BookingId = t.ReferenceBookingId!.Value,
                     Status = EF.Property<string?>(t, nameof(Transaction.Status)) ?? "",
-                    t.CreatedAt
+                    TransactionType = EF.Property<string?>(t, nameof(Transaction.TransactionType)) ?? "",
+                    PaymentMethod = EF.Property<string?>(t, nameof(Transaction.PaymentMethod)),
+                    Amount = t.Amount,
+                    OrderCode = EF.Property<string?>(t, nameof(Transaction.OrderCode)),
+                    CreatedAt = t.CreatedAt
                 })
                 .ToListAsync();
 
@@ -327,6 +332,161 @@ namespace AutoWashPro.BLL.Services
                 && string.Equals(paymentStatus, "Completed", StringComparison.OrdinalIgnoreCase)
                     ? "Completed"
                     : "Unpaid";
+        }
+
+        public async Task<BookingPaymentStatusDTO> GetBookingPaymentStatusAsync(int bookingId)
+        {
+            var booking = await _context.Bookings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => b.BookingId == bookingId);
+
+            if (booking == null)
+                throw new AutoWashPro.BLL.Exceptions.NotFoundException($"Không tìm thấy booking #{bookingId}.");
+
+            var tx = await _context.Transactions
+                .AsNoTracking()
+                .Where(t => t.ReferenceBookingId == bookingId
+                    && (t.TransactionType == "BookingPayment"
+                        || t.TransactionType == "WalkInPayment"
+                        || t.TransactionType == "Payment"))
+                .OrderByDescending(t => t.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            string paymentStatus;
+            string? paymentMethod = tx?.PaymentMethod;
+            string? orderCode = tx?.OrderCode;
+            decimal? amount = tx?.Amount;
+            DateTime? paidAt = null;
+
+            if (tx == null)
+            {
+                paymentStatus = "Unpaid";
+            }
+            else if (string.Equals(tx.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                paymentStatus = "Completed";
+            }
+            else if (string.Equals(tx.Status, "Expired", StringComparison.OrdinalIgnoreCase))
+            {
+                paymentStatus = "Expired";
+            }
+            else if (string.Equals(tx.Status, "Failed", StringComparison.OrdinalIgnoreCase))
+            {
+                paymentStatus = "Failed";
+            }
+            else
+            {
+                paymentStatus = "Pending";
+            }
+
+            if (paymentStatus != "Completed" && string.Equals(tx?.PaymentMethod, "PayOS", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(tx?.OrderCode))
+            {
+                try
+                {
+                    var verified = await _payOsService.GetPaymentStatusAsync(tx.OrderCode!);
+                    if (verified != null && verified.IsPaid)
+                    {
+                        paymentStatus = "Completed";
+                        await MarkTransactionCompletedAsync(tx.TransactionId, verified.Amount);
+                        paidAt = verified.PaidAt ?? DateTime.UtcNow;
+                    }
+                    else if (verified != null && verified.IsCancelled)
+                    {
+                        var terminalStatus = string.Equals(verified.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase)
+                            ? "Expired"
+                            : "Failed";
+                        paymentStatus = terminalStatus;
+                        await MarkTransactionTerminalAsync(tx.TransactionId, terminalStatus);
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            if (paymentStatus == "Completed" && tx != null && string.Equals(tx.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                paidAt = tx.CreatedAt;
+            }
+
+            return new BookingPaymentStatusDTO
+            {
+                BookingId = bookingId,
+                PaymentStatus = paymentStatus,
+                PaymentMethod = paymentMethod,
+                OrderCode = orderCode,
+                Amount = amount,
+                PaidAt = paidAt
+            };
+        }
+
+        private async Task MarkTransactionCompletedAsync(int transactionId, decimal? webhookAmount)
+        {
+            var tx = await _context.Transactions.FirstOrDefaultAsync(t => t.TransactionId == transactionId);
+            if (tx == null) return;
+            if (string.Equals(tx.Status, "Completed", StringComparison.OrdinalIgnoreCase)) return;
+
+            tx.Status = "Completed";
+            if (!string.IsNullOrEmpty(tx.OrderCode))
+            {
+                tx.Description = tx.TransactionType switch
+                {
+                    "Topup" => $"Nạp tiền thành công (Mã: {tx.OrderCode})",
+                    "BookingPayment" => $"Thanh toán booking thành công (Mã: {tx.OrderCode})",
+                    "WalkInPayment" => $"Thanh toán walk-in thành công (Mã: {tx.OrderCode})",
+                    _ => tx.Description
+                };
+            }
+
+            if (webhookAmount.HasValue
+                && (tx.TransactionType == "BookingPayment" || tx.TransactionType == "WalkInPayment")
+                && tx.ReferenceBookingId.HasValue)
+            {
+                var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.BookingId == tx.ReferenceBookingId.Value);
+                if (booking != null) booking.UpdatedAt = DateTime.UtcNow;
+            }
+
+            if ((tx.TransactionType == "BookingPayment" || tx.TransactionType == "WalkInPayment")
+                && tx.ReferenceBookingId.HasValue)
+            {
+                var otherPendingBookingPayments = await _context.Transactions
+                    .Where(t => t.ReferenceBookingId == tx.ReferenceBookingId.Value
+                             && t.TransactionId != tx.TransactionId
+                             && (t.TransactionType == "BookingPayment" || t.TransactionType == "WalkInPayment")
+                             && t.Status == "Pending")
+                    .ToListAsync();
+                foreach (var pendingPayment in otherPendingBookingPayments)
+                {
+                    pendingPayment.Status = "Expired";
+                }
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        private async Task MarkTransactionTerminalAsync(int transactionId, string terminalStatus)
+        {
+            if (terminalStatus != "Failed" && terminalStatus != "Expired" && terminalStatus != "Cancelled")
+                return;
+
+            var tx = await _context.Transactions.FirstOrDefaultAsync(t => t.TransactionId == transactionId);
+            if (tx == null) return;
+            if (string.Equals(tx.Status, "Completed", StringComparison.OrdinalIgnoreCase)) return;
+            if (string.Equals(tx.Status, terminalStatus, StringComparison.OrdinalIgnoreCase)) return;
+
+            tx.Status = terminalStatus;
+            if (!string.IsNullOrEmpty(tx.OrderCode))
+            {
+                tx.Description = tx.TransactionType switch
+                {
+                    "Topup" => $"Nạp tiền thất bại/hết hạn (Mã: {tx.OrderCode})",
+                    "BookingPayment" => $"Thanh toán booking thất bại/hết hạn (Mã: {tx.OrderCode})",
+                    "WalkInPayment" => $"Thanh toán walk-in thất bại/hết hạn (Mã: {tx.OrderCode})",
+                    _ => tx.Description
+                };
+            }
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task<BookingResponseDTO> UpdateBookingStatusByLicensePlateAsync(string licensePlate, string newStatus)
@@ -1422,6 +1582,15 @@ namespace AutoWashPro.BLL.Services
                     _context.Bookings.Add(booking);
                     await _context.SaveChangesAsync();
 
+                    string? payOsOrderCode = null;
+                    if (string.Equals(paymentMethod, "PayOS", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (finalAmount <= 0)
+                            throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Không thể tạo link thanh toán PayOS vì tổng tiền dịch vụ = {finalAmount:N0}đ. Vui lòng kiểm tra lại bảng giá dịch vụ cho loại xe này tại chi nhánh.");
+
+                        payOsOrderCode = DateTime.UtcNow.ToString("yyMMddHHmmssfff");
+                    }
+
                     paymentTx = new Transaction
                     {
                         WalletId = null,
@@ -1429,18 +1598,17 @@ namespace AutoWashPro.BLL.Services
                         TransactionType = "WalkInPayment",
                         Description = $"Walk-in payment via {paymentMethod}",
                         PaymentMethod = paymentMethod,
-                        ReferenceBookingId = booking.BookingId
+                        ReferenceBookingId = booking.BookingId,
+                        OrderCode = payOsOrderCode,
+                        Status = payOsOrderCode != null ? "Pending" : "Completed"
                     };
                     _context.Transactions.Add(paymentTx);
                     await _context.SaveChangesAsync();
 
                     if (string.Equals(paymentMethod, "PayOS", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (finalAmount <= 0)
-                            throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Không thể tạo link thanh toán PayOS vì tổng tiền dịch vụ = {finalAmount:N0}đ. Vui lòng kiểm tra lại bảng giá dịch vụ cho loại xe này tại chi nhánh.");
-
                         var payOsResult = await _payOsService.CreatePaymentLinkAsync(
-                            long.Parse(DateTime.UtcNow.ToString("yyMMddHHmmssfff")),
+                            long.Parse(payOsOrderCode!),
                             (int)finalAmount,
                             $"Thanh toan #{booking.BookingId}",
                             "WalkIn",
@@ -1576,7 +1744,7 @@ namespace AutoWashPro.BLL.Services
 
                     var pendingPaymentTransactions = await _context.Transactions
                         .Where(t => t.ReferenceBookingId == booking.BookingId
-                                 && t.TransactionType == "BookingPayment"
+                                 && (t.TransactionType == "BookingPayment" || t.TransactionType == "WalkInPayment")
                                  && t.Status == "Pending")
                         .ToListAsync();
                     foreach (var pendingPaymentTransaction in pendingPaymentTransactions)
@@ -1623,7 +1791,9 @@ namespace AutoWashPro.BLL.Services
             return _context.Transactions.AnyAsync(t =>
                 t.ReferenceBookingId == bookingId
                 && t.Status == "Completed"
-                && (t.TransactionType == "Payment" || t.TransactionType == "BookingPayment"));
+                && (t.TransactionType == "Payment"
+                    || t.TransactionType == "BookingPayment"
+                    || t.TransactionType == "WalkInPayment"));
         }
 
         public async Task<BookingResponseDTO> RescheduleBookingAsync(int userId, int bookingId, RescheduleBookingDTO request)
