@@ -306,7 +306,8 @@ namespace AutoWashPro.BLL.Services
                 .Where(t => t.ReferenceBookingId.HasValue
                     && ids.Contains(t.ReferenceBookingId.Value)
                     && (EF.Property<string?>(t, nameof(Transaction.TransactionType)) == "Payment"
-                        || EF.Property<string?>(t, nameof(Transaction.TransactionType)) == "BookingPayment"))
+                        || EF.Property<string?>(t, nameof(Transaction.TransactionType)) == "BookingPayment"
+                        || EF.Property<string?>(t, nameof(Transaction.TransactionType)) == "WalkInPayment"))
                 .OrderByDescending(t => t.CreatedAt)
                 .Select(t => new
                 {
@@ -1376,7 +1377,6 @@ namespace AutoWashPro.BLL.Services
             }
 
             string? paymentUrl = null;
-
             try
             {
                 if (slot != null)
@@ -1422,26 +1422,42 @@ namespace AutoWashPro.BLL.Services
                     _context.Bookings.Add(booking);
                     await _context.SaveChangesAsync();
 
+                    var isPayOsWalkInPayment = string.Equals(paymentMethod, "PayOS", StringComparison.OrdinalIgnoreCase);
+                    long? payOsOrderCode = null;
+                    int? payOsAmount = null;
+
+                    if (isPayOsWalkInPayment)
+                    {
+                        if (finalAmount <= 0)
+                            throw new AutoWashPro.BLL.Exceptions.BadRequestException("Khong the tao link thanh toan PayOS vi tong tien dich vu khong hop le.");
+
+                        payOsAmount = ToPayOsAmount(finalAmount);
+                        payOsOrderCode = GeneratePayOsOrderCode();
+                    }
+
                     paymentTx = new Transaction
                     {
                         WalletId = null,
-                        Amount = finalAmount,
+                        Amount = payOsAmount ?? finalAmount,
                         TransactionType = "WalkInPayment",
                         Description = $"Walk-in payment via {paymentMethod}",
                         PaymentMethod = paymentMethod,
-                        ReferenceBookingId = booking.BookingId
+                        ReferenceBookingId = booking.BookingId,
+                        OrderCode = payOsOrderCode?.ToString(),
+                        Status = isPayOsWalkInPayment ? "Pending" : "Completed",
+                        CreatedAt = DateTime.UtcNow
                     };
                     _context.Transactions.Add(paymentTx);
                     await _context.SaveChangesAsync();
 
-                    if (string.Equals(paymentMethod, "PayOS", StringComparison.OrdinalIgnoreCase))
+                    if (isPayOsWalkInPayment)
                     {
                         if (finalAmount <= 0)
                             throw new AutoWashPro.BLL.Exceptions.BadRequestException($"Không thể tạo link thanh toán PayOS vì tổng tiền dịch vụ = {finalAmount:N0}đ. Vui lòng kiểm tra lại bảng giá dịch vụ cho loại xe này tại chi nhánh.");
 
                         var payOsResult = await _payOsService.CreatePaymentLinkAsync(
-                            long.Parse(DateTime.UtcNow.ToString("yyMMddHHmmssfff")),
-                            (int)finalAmount,
+                            payOsOrderCode!.Value,
+                            payOsAmount!.Value,
                             $"Thanh toan #{booking.BookingId}",
                             "WalkIn",
                             string.IsNullOrWhiteSpace(request.ReturnUrl) ? null : request.ReturnUrl,
@@ -1623,7 +1639,7 @@ namespace AutoWashPro.BLL.Services
             return _context.Transactions.AnyAsync(t =>
                 t.ReferenceBookingId == bookingId
                 && t.Status == "Completed"
-                && (t.TransactionType == "Payment" || t.TransactionType == "BookingPayment"));
+                && (t.TransactionType == "Payment" || t.TransactionType == "BookingPayment" || t.TransactionType == "WalkInPayment"));
         }
 
         public async Task<BookingResponseDTO> RescheduleBookingAsync(int userId, int bookingId, RescheduleBookingDTO request)
@@ -1744,6 +1760,27 @@ namespace AutoWashPro.BLL.Services
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        private static long GeneratePayOsOrderCode()
+        {
+            var timestampPart = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() % 1_000_000_000_000;
+            var randomPart = Random.Shared.Next(10, 99);
+            return timestampPart * 100 + randomPart;
+        }
+
+        private static int ToPayOsAmount(decimal amount)
+        {
+            if (amount <= 0)
+                throw new AutoWashPro.BLL.Exceptions.BadRequestException("So tien thanh toan PayOS phai lon hon 0.");
+
+            if (amount != decimal.Truncate(amount))
+                throw new AutoWashPro.BLL.Exceptions.BadRequestException("PayOS chi ho tro so tien VND nguyen, khong co phan thap phan.");
+
+            if (amount > int.MaxValue)
+                throw new AutoWashPro.BLL.Exceptions.BadRequestException("So tien thanh toan PayOS vuot qua gioi han ho tro.");
+
+            return decimal.ToInt32(amount);
         }
 
     }
