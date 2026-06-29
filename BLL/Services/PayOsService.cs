@@ -11,9 +11,9 @@ namespace AutoWashPro.BLL.Services
 
         public PayOsService(IConfiguration configuration)
         {
-            var clientId = configuration["PayOSConfig:ClientId"];
-            var apiKey = configuration["PayOSConfig:ApiKey"];
-            var checksumKey = configuration["PayOSConfig:ChecksumKey"];
+             var clientId = configuration["PayOS:ClientId"];
+             var apiKey = configuration["PayOS:ApiKey"];
+             var checksumKey = configuration["PayOS:ChecksumKey"];
 
             if (!string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(checksumKey))
             {
