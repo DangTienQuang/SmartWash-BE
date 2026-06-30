@@ -152,6 +152,7 @@ namespace AutoWashPro.BLL.Services
                 Amount = amount,
                 TransactionType = transactionType,
                 Description = transactionDescription,
+                PaymentMethod = "PayOS",
                 ReferenceBookingId = referenceBookingId,
                 OrderCode = orderCode.ToString(),
                 Status = "Pending",
